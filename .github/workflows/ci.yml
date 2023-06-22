@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        backend:
+          - gcrypt
+          - mbedtls
+          - nettle
+          - openssl
+        buildtype:
+          - Debug
+          - RelWithDebInfo
+          - Release
+          - MinSizeRel
+        compiler:
+          - gcc
+          - clang
+        sanitizer:
+          - VALGRIND
+          - ASAN
+          - UBSAN
+        exclude:
+          # Valgrind currently does not support dwarf2 produced by clang.
+          - compiler: clang
+            sanitizer: VALGRIND
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install mbedtls
+        if: matrix.backend == 'mbedtls'
+        run: |
+          wget "https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v3.4.0.tar.gz" \
+            && tar -xzf v3.4.0.tar.gz \
+            && cd mbedtls-3.4.0 \
+            && make \
+            && sudo make install \
+            && rm -rf v3.4.0.tar.gz mbedtls-3.4.0
+      - name: Install nettle
+        if: matrix.backend == 'nettle'
+        run: sudo apt-get install -y nettle-dev
+      - name: Install valgrind
+        if: matrix.sanitizer == 'VALGRIND'
+        run: sudo apt install -y valgrind
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Configure CMake
+        working-directory: ${{runner.workspace}}/build
+        run: cmake ${{github.workspace}} -DCRYPTO_BACKEND=${{matrix.backend}} -DCMAKE_BUILD_TYPE=${{matrix.buildtype}} -DCMAKE_C_COMPILER=${{matrix.compiler}} -DENABLE_${{matrix.sanitizer}}=ON
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config ${{matrix.buildtype}}
+      - name: Test
+        working-directory: ${{runner.workspace}}/build
+        run: ctest -C ${{matrix.buildtype}} --output-on-failure
