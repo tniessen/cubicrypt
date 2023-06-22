@@ -39,7 +39,7 @@ jobs:
           wget "https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v3.4.0.tar.gz" \
             && tar -xzf v3.4.0.tar.gz \
             && cd mbedtls-3.4.0 \
-            && make \
+            && make no_test \
             && sudo make install \
             && rm -rf v3.4.0.tar.gz mbedtls-3.4.0
       - name: Install nettle
