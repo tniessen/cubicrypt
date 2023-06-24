@@ -14,6 +14,15 @@ static inline void encode_u32be(uint32_t value, uint8_t* out) {
   out[3] = (value >> 000) & 0xff;
 }
 
+/** Copies a 32-bit or 64-bit unsigned integer to a 128-bit field. */
+static inline void encode_u128be(size_t value, uint8_t* out) {
+  memset(out, 0, 16 - sizeof(size_t));
+#if SIZE_MAX > UINT32_MAX
+  encode_u32be((uint32_t) (value >> 32u), out + 8);
+#endif
+  encode_u32be((uint32_t) (value & UINT32_MAX), out + 12);
+}
+
 // TODO: if this is only used to check if x > max_u32(width), then we can just
 // use (x >> width) != 0.
 static inline uint32_t max_u32(uint8_t width) {
@@ -50,31 +59,41 @@ static inline void compute_iv(uint32_t count, bool is_encrypted, uint8_t* iv) {
   encode_u32be(count, iv + 8);
 }
 
+#define AES_GCM_BYTES_PER_BLOCK 16
+
 typedef struct cubicrypt_padded {
   cubicrypt_iovecs iovecs;
-  cubicrypt_iovec bufs[3];
-  uint8_t padding[16];
+  cubicrypt_iovec bufs[4];
+  uint8_t prefix[AES_GCM_BYTES_PER_BLOCK];
 } cubicrypt_padded;
 
-// It is important to note that the IV contains a bit that indicates whether the
-// frame is encrypted or not. Otherwise, if we pad the AAD for auth-only frames,
-// we would not be able to distinguish it from empty encrypted frames with the
-// same AAD.
+static const uint8_t padding_zero[AES_GCM_BYTES_PER_BLOCK];
+
+/**
+ * Produces encode_u128be(aad_size) || aad || padding || body, where padding is
+ * the shortest sequence of zeros such that the length of aad || padding is a
+ * multiple of the AES-GCM block size (16 bytes).
+ *
+ * It is important to note that the IV contains a bit that indicates whether the
+ * frame is encrypted or not. Otherwise, if we pad the AAD for auth-only frames,
+ * we would not be able to distinguish it from empty encrypted frames with the
+ * same AAD.
+ */
 static inline void pad_for_aad(cubicrypt_padded* p, const void* aad,
                                size_t aad_size, const void* body,
                                size_t body_size) {
+  const size_t block_size = AES_GCM_BYTES_PER_BLOCK;
   p->iovecs.bufs = p->bufs;
-  p->iovecs.n_bufs = 3;
-
-  uint8_t padding_len = 16 - (aad_size % 16);
-  memset(p->padding, padding_len, padding_len);
-
-  p->bufs[0].iov_base = aad;
-  p->bufs[0].iov_len = aad_size;
-  p->bufs[1].iov_base = p->padding;
-  p->bufs[1].iov_len = padding_len;
-  p->bufs[2].iov_base = body;
-  p->bufs[2].iov_len = body_size;
+  p->iovecs.n_bufs = 4;
+  encode_u128be(aad_size, p->prefix);
+  p->bufs[0].iov_base = p->prefix;
+  p->bufs[0].iov_len = sizeof(p->prefix);
+  p->bufs[1].iov_base = aad;
+  p->bufs[1].iov_len = aad_size;
+  p->bufs[2].iov_base = padding_zero;
+  p->bufs[2].iov_len = (block_size - (aad_size % block_size)) % block_size;
+  p->bufs[3].iov_base = body;
+  p->bufs[3].iov_len = body_size;
 }
 
 cubicrypt_err cubicrypt_out_init(
