@@ -54,7 +54,7 @@ static inline void compute_iv(uint32_t count, bool is_encrypted, uint8_t* iv) {
   // Reserved.
   memset(iv, 0, 4);
   // Flags.
-  encode_u32be((!is_encrypted) << 31u, iv + 4);
+  encode_u32be(((uint32_t) !is_encrypted) << 31u, iv + 4);
   // Frame counter.
   encode_u32be(count, iv + 8);
 }
