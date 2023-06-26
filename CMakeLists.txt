@@ -23,8 +23,8 @@ if(ENABLE_ASAN)
 endif()
 
 if(ENABLE_UBSAN)
-  add_compile_options(-fsanitize=undefined)
-  add_link_options(-fsanitize=undefined)
+  add_compile_options(-fsanitize=undefined -fno-sanitize-recover=all)
+  add_link_options(-fsanitize=undefined -fno-sanitize-recover=all)
 endif()
 
 add_library(cubicrypt "src/cubicrypt.c")
