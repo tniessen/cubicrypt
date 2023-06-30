@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifndef CUBICRYPT_NO_CONFIG_H
+#  include <cubicrypt/config.h>
+#endif
+
 /**
  * Cubicrypt functions have this return type. All codes other than
  * `CUBICRYPT_ERR_OK` indicate errors.
@@ -245,12 +249,38 @@ cubicrypt_err cubicrypt_out_auth_only(cubicrypt_out_ctx* ctx,
  */
 cubicrypt_err cubicrypt_out_deinit(cubicrypt_out_ctx* ctx);
 
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+#  ifdef CUBICRYPT_OUT_OF_ORDER_LARGE_WINDOW
+#    define __CUBICRYPT_OUT_OF_ORDER_WINDOW_INT_T uint64_t
+#  elif defined(CUBICRYPT_OUT_OF_ORDER_SMALL_WINDOW)
+#    define __CUBICRYPT_OUT_OF_ORDER_WINDOW_INT_T uint16_t
+#  else
+#    define __CUBICRYPT_OUT_OF_ORDER_WINDOW_INT_T uint32_t
+#  endif
+
+/**
+ * The unsigned integer type that internally represent the out-of-order window.
+ */
+typedef __CUBICRYPT_OUT_OF_ORDER_WINDOW_INT_T cubicrypt_ooo_window;
+
+#  undef __CUBICRYPT_OUT_OF_ORDER_WINDOW_INT_T
+
+/**
+ * The number of bits in the out-of-order window.
+ */
+#  define CUBICRYPT_OUT_OF_ORDER_WINDOW_BITS (sizeof(cubicrypt_ooo_window) * 8)
+#endif
+
 typedef struct {
   bool initialized;
   uint8_t primary_key[CUBICRYPT_PRIMARY_KEY_BYTES];
   cubicrypt_params params;
   cubicrypt_session_state smallest_valid_session_state;
   cubicrypt_session_persistent_storage persistent_storage;
+
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+  cubicrypt_ooo_window ooo_window;
+#endif
 } cubicrypt_in_ctx;
 
 /**

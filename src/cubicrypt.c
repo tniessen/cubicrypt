@@ -333,6 +333,10 @@ cubicrypt_err cubicrypt_in_init(cubicrypt_in_ctx* ctx, const void* primary_key,
     return CUBICRYPT_ERR_STORAGE;
   }
 
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+  ctx->ooo_window = 0;
+#endif
+
   ctx->initialized = true;
   return CUBICRYPT_ERR_OK;
 }
@@ -363,11 +367,24 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
     return CUBICRYPT_ERR_PARAMS;
   }
 
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+  bool was_ooo = false;
+#endif
+
   if (session_id < ctx->smallest_valid_session_state.id) {
     return CUBICRYPT_ERR_AUTH;
   } else if (session_id == ctx->smallest_valid_session_state.id) {
     if (frame_iv < ctx->smallest_valid_session_state.iv) {
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+      uint32_t gap = ctx->smallest_valid_session_state.iv - frame_iv - 1;
+      if (gap < 1 || gap > CUBICRYPT_OUT_OF_ORDER_WINDOW_BITS ||
+          (ctx->ooo_window & ((cubicrypt_ooo_window) 1u << (gap - 1))) == 0) {
+        return CUBICRYPT_ERR_AUTH;
+      }
+      was_ooo = true;
+#else
       return CUBICRYPT_ERR_AUTH;
+#endif
     }
   }
 
@@ -414,10 +431,38 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
       return CUBICRYPT_ERR_STORAGE;
     }
 
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+    ctx->ooo_window = 0;
+#endif
+
     ctx->smallest_valid_session_state.id = session_id;
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+  } else if (frame_iv >= ctx->smallest_valid_session_state.iv) {
+    uint32_t gap = frame_iv - ctx->smallest_valid_session_state.iv;
+    if (gap >= CUBICRYPT_OUT_OF_ORDER_WINDOW_BITS) {
+      ctx->ooo_window = ~(cubicrypt_ooo_window) 0;
+    } else {
+      cubicrypt_ooo_window gap_mask =
+          (gap == 0)
+              ? 0
+              : ((cubicrypt_ooo_window) (~(cubicrypt_ooo_window) 0)) >>
+                    (cubicrypt_ooo_window) (CUBICRYPT_OUT_OF_ORDER_WINDOW_BITS -
+                                            gap);
+      ctx->ooo_window = (ctx->ooo_window << (gap + 1)) | gap_mask;
+    }
+  } else {
+    uint32_t gap = ctx->smallest_valid_session_state.iv - frame_iv - 1;
+    ctx->ooo_window &= ~((cubicrypt_ooo_window) 1u << (gap - 1));
+#endif
   }
 
-  ctx->smallest_valid_session_state.iv = frame_iv + 1;
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+  if (!was_ooo) {
+#else
+  if (true) {
+#endif
+    ctx->smallest_valid_session_state.iv = frame_iv + 1;
+  }
 
   if (out != NULL) *out = is_encrypted ? out_buf : body;
 
