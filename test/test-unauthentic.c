@@ -15,11 +15,14 @@ static void test_unauthentic(cubicrypt_out_ctx* sender,
 
 CUBICRYPT_TEST_MAIN(unauthentic) {
   cubicrypt_out_ctx sender;
-  cubicrypt_session_state sender_persistent_state = { 0, 0 };
+  cubicrypt_session_state sender_persistent_state =
+      cubicrypt_initial_persistent_state();
   cubicrypt_in_ctx receiver;
-  cubicrypt_session_state receiver_persistent_state = { 0, 0 };
+  cubicrypt_session_state receiver_persistent_state =
+      cubicrypt_initial_persistent_state();
   cubicrypt_in_ctx receiver_w_diff_key;
-  cubicrypt_session_state receiver_w_diff_key_persistent_state = { 0, 0 };
+  cubicrypt_session_state receiver_w_diff_key_persistent_state =
+      cubicrypt_initial_persistent_state();
 
   // Prepare the individual contexts.
   setup(&sender, &sender_persistent_state, &receiver,
@@ -27,7 +30,7 @@ CUBICRYPT_TEST_MAIN(unauthentic) {
         &receiver_w_diff_key_persistent_state);
 
   // Run the actual test multiple times with different session IDs.
-  for (unsigned int i = 1; i <= 1000; i++) {
+  for (unsigned int i = 2; i <= 1000; i++) {
     test_unauthentic(&sender, &receiver, &receiver_w_diff_key);
     assert_ok(cubicrypt_out_new_session(&sender, i));
   }

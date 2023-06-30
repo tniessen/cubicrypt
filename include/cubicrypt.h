@@ -31,6 +31,8 @@ typedef uint_fast8_t cubicrypt_err;
 #define CUBICRYPT_ERR_CRYPTO_LIB ((cubicrypt_err) 0x73)
 /** A frame could not be decoded due to an authentication failure. */
 #define CUBICRYPT_ERR_AUTH ((cubicrypt_err) 0x74)
+/** The sending context has run out of session identifiers. */
+#define CUBICRYPT_ERR_SESSIONS_EXHAUSTED ((cubicrypt_err) 0x75)
 
 /** The minimum number of bits that session IDs must consist of. */
 #define CUBICRYPT_MIN_SESSION_ID_BITS 16
@@ -126,6 +128,14 @@ typedef struct {
   cubicrypt_session_persistent_load_fn load;
   cubicrypt_session_persistent_save_fn save;
 } cubicrypt_session_persistent_storage;
+
+/**
+ * Returns the persistent state for a new, to-be-initialized Cubicrypt context.
+ *
+ * This function must not be used for existing contexts. It should only be used
+ * to initialize persistent storage for an entirely new context.
+ */
+cubicrypt_session_state cubicrypt_initial_persistent_state(void);
 
 typedef struct {
   bool initialized;

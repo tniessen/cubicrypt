@@ -4,13 +4,15 @@
 
 CUBICRYPT_TEST_MAIN(basics) {
   cubicrypt_out_ctx sender;
-  cubicrypt_session_state sender_persistent_state = { 0, 0 };
+  cubicrypt_session_state sender_persistent_state =
+      cubicrypt_initial_persistent_state();
   assert_ok(cubicrypt_out_init(&sender, test_primary_key, &default_params,
                                load_session_state, save_session_state,
                                &sender_persistent_state));
 
   cubicrypt_in_ctx receiver;
-  cubicrypt_session_state receiver_persistent_state = { 0, 0 };
+  cubicrypt_session_state receiver_persistent_state =
+      cubicrypt_initial_persistent_state();
   assert_ok(cubicrypt_in_init(&receiver, test_primary_key, &default_params,
                               load_session_state, save_session_state,
                               &receiver_persistent_state));

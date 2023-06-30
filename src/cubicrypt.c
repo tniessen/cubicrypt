@@ -23,11 +23,13 @@ static inline void encode_u128be(size_t value, uint8_t* out) {
   encode_u32be((uint32_t) (value & UINT32_MAX), out + 12);
 }
 
-// TODO: if this is only used to check if x > max_u32(width), then we can just
-// use (x >> width) != 0.
-static inline uint32_t max_u32(uint8_t width) {
+static inline uint32_t mask_u32(uint8_t width) {
   assert(width > 0 && width <= 32);
-  return (width == 32) ? ((uint32_t) -1) : ((1u << (uint32_t) width) - 1);
+  return (~(uint32_t) 0) >> (32u - width);
+}
+
+static inline uint32_t inc_u32(uint32_t value, uint8_t bits) {
+  return (value + 1u) & mask_u32(bits);
 }
 
 static inline bool params_invalid(const cubicrypt_params* params) {
@@ -96,6 +98,11 @@ static inline void pad_for_aad(cubicrypt_padded* p, const void* aad,
   p->bufs[3].iov_len = body_size;
 }
 
+cubicrypt_session_state cubicrypt_initial_persistent_state(void) {
+  const cubicrypt_session_state initial_state = { 1u, 0u };
+  return initial_state;
+}
+
 cubicrypt_err cubicrypt_out_init(
     cubicrypt_out_ctx* ctx, const void* primary_key,
     const cubicrypt_params* params,
@@ -145,11 +152,12 @@ cubicrypt_err cubicrypt_out_new_session(cubicrypt_out_ctx* ctx,
     return CUBICRYPT_ERR_PARAMS;
   }
 
-  if (session_id > max_u32(ctx->params.session_id_bits)) {
+  if (session_id > mask_u32(ctx->params.session_id_bits)) {
     return CUBICRYPT_ERR_PARAMS;
   }
 
-  if (session_id <= ctx->next_valid_session_state.id) {
+  if (ctx->next_valid_session_state.id == 0 ||
+      session_id <= ctx->next_valid_session_state.id) {
     return CUBICRYPT_ERR_PARAMS;  // TODO: This should be an auth error. Why no
                                   // test failure?
   }
@@ -173,18 +181,27 @@ cubicrypt_err cubicrypt_out_new_session(cubicrypt_out_ctx* ctx,
 static cubicrypt_err get_then_increment_session_state(cubicrypt_out_ctx* ctx,
                                                       uint32_t* session_id,
                                                       uint32_t* frame_iv) {
+  // Session id 0 is reserved. If it is the next valid session id, it means that
+  // the sender has run out of session ids.
+  if (ctx->next_valid_session_state.id == 0) {
+    return CUBICRYPT_ERR_SESSIONS_EXHAUSTED;
+  }
+
   *session_id = ctx->next_valid_session_state.id;
   *frame_iv = ctx->next_valid_session_state.iv;
 
-  uint32_t frame_iv_mask = ~((uint32_t) 0) >> (32 - ctx->params.frame_iv_bits);
-
-  if ((ctx->next_valid_session_state.iv = (*frame_iv + 1) & frame_iv_mask) ==
-      0) {
-    ctx->next_valid_session_state.id++;  // TODO: Overflow
+  uint32_t next_frame_iv = inc_u32(*frame_iv, ctx->params.frame_iv_bits);
+  if ((ctx->next_valid_session_state.iv = next_frame_iv) == 0) {
+    uint32_t next_session_id =
+        inc_u32(*session_id, ctx->params.session_id_bits);
+    ctx->next_valid_session_state.id = next_session_id;
 
     // TODO: Overflow, refactor
     cubicrypt_session_state safe_recovery_state;
-    safe_recovery_state.id = ctx->next_valid_session_state.id + 1;
+    safe_recovery_state.id =
+        (next_session_id == 0)
+            ? 0
+            : inc_u32(next_session_id, ctx->params.session_id_bits);
     safe_recovery_state.iv = 0;
 
     if (!ctx->persistent_storage.save(safe_recovery_state,
@@ -351,11 +368,11 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
     return CUBICRYPT_ERR_PARAMS;
   }
 
-  if (session_id > max_u32(ctx->params.session_id_bits)) {
+  if (session_id > mask_u32(ctx->params.session_id_bits)) {
     return CUBICRYPT_ERR_PARAMS;
   }
 
-  if (frame_iv > max_u32(ctx->params.frame_iv_bits)) {
+  if (frame_iv > mask_u32(ctx->params.frame_iv_bits)) {
     return CUBICRYPT_ERR_PARAMS;
   }
 
@@ -371,7 +388,7 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
   bool was_ooo = false;
 #endif
 
-  if (session_id < ctx->smallest_valid_session_state.id) {
+  if (session_id == 0 || session_id < ctx->smallest_valid_session_state.id) {
     return CUBICRYPT_ERR_AUTH;
   } else if (session_id == ctx->smallest_valid_session_state.id) {
     if (frame_iv < ctx->smallest_valid_session_state.iv) {
@@ -422,7 +439,7 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
 
   if (session_id > ctx->smallest_valid_session_state.id) {
     cubicrypt_session_state safe_recovery_state;
-    safe_recovery_state.id = session_id + 1;
+    safe_recovery_state.id = inc_u32(session_id, ctx->params.session_id_bits);
     safe_recovery_state.iv = 0;
 
     assert(ctx->persistent_storage.save != NULL);
@@ -461,7 +478,30 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
 #else
   if (true) {
 #endif
-    ctx->smallest_valid_session_state.iv = frame_iv + 1;
+    ctx->smallest_valid_session_state.iv =
+        inc_u32(frame_iv, ctx->params.frame_iv_bits);
+    if (ctx->smallest_valid_session_state.iv == 0) {
+      ctx->smallest_valid_session_state.id =
+          inc_u32(session_id, ctx->params.session_id_bits);
+
+      cubicrypt_session_state safe_recovery_state;
+      safe_recovery_state.id =
+          (ctx->smallest_valid_session_state.id == 0)
+              ? 0
+              : inc_u32(ctx->smallest_valid_session_state.id,
+                        ctx->params.session_id_bits);
+      safe_recovery_state.iv = 0;
+
+      assert(ctx->persistent_storage.save != NULL);
+      if (!ctx->persistent_storage.save(safe_recovery_state,
+                                        ctx->persistent_storage.user_data)) {
+        return CUBICRYPT_ERR_STORAGE;
+      }
+
+#ifndef CUBICRYPT_NO_OUT_OF_ORDER
+      ctx->ooo_window = 0;
+#endif
+    }
   }
 
   if (out != NULL) *out = is_encrypted ? out_buf : body;

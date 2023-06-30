@@ -42,7 +42,9 @@ CUBICRYPT_TEST_MAIN(storage_failure) {
   storage_data receiver_storage;
 
   memset(&sender_storage, 0, sizeof(sender_storage));
+  sender_storage.state = cubicrypt_initial_persistent_state();
   memset(&receiver_storage, 0, sizeof(receiver_storage));
+  receiver_storage.state = cubicrypt_initial_persistent_state();
 
   // Initializing should fail until a read followed by a write succeeds.
   assert_eq(cubicrypt_out_init(&sender, test_primary_key, &default_params,
@@ -87,7 +89,7 @@ CUBICRYPT_TEST_MAIN(storage_failure) {
                               save_session_state_or_fail, &receiver_storage));
 
   // Run the actual test multiple times with different session IDs.
-  for (unsigned int i = 1; i <= 1000; i++) {
+  for (unsigned int i = 2; i <= 1000; i++) {
     // As long as writing to the storage fails, it should not be possible to
     // start new sessions, and the internal state should remain unchanged.
     for (unsigned int j = 1; j <= 10; j++) {
