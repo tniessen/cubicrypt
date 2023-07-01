@@ -42,10 +42,13 @@ static inline bool params_invalid(const cubicrypt_params* params) {
 /**
  * Computes the session key based on a given primary key and the session id.
  */
-static bool compute_session_key(const void* primary_key, uint32_t session_id,
-                                void* session_key) {
-  uint8_t plaintext[CUBICRYPT_SESSION_KEY_BYTES] = { 0 };
-  encode_u32be(session_id, plaintext + CUBICRYPT_SESSION_KEY_BYTES - 4);
+static bool compute_session_key(const void* primary_key,
+                                const cubicrypt_params* params,
+                                uint32_t session_id, void* session_key) {
+  uint8_t plaintext[CUBICRYPT_SESSION_KEY_BYTES];
+  memcpy(plaintext, params->context_id, CUBICRYPT_CONTEXT_ID_BYTES);
+  encode_u32be(params->epoch, plaintext + 8);
+  encode_u32be(session_id, plaintext + 12);
   return cubicrypt_aes_256_cipher(primary_key, plaintext, session_key);
 }
 
@@ -121,6 +124,9 @@ cubicrypt_err cubicrypt_out_init(
 
   memcpy(ctx->primary_key, primary_key, CUBICRYPT_PRIMARY_KEY_BYTES);
 
+  memcpy(ctx->params.context_id, params->context_id,
+         CUBICRYPT_CONTEXT_ID_BYTES);
+  ctx->params.epoch = params->epoch;
   ctx->params.session_id_bits = params->session_id_bits;
   ctx->params.frame_iv_bits = params->frame_iv_bits;
 
@@ -261,8 +267,8 @@ cubicrypt_err cubicrypt_out_encode(cubicrypt_out_ctx* ctx, uint32_t* session_id,
   }
 
   uint8_t session_key[CUBICRYPT_SESSION_KEY_BYTES];
-  bool crypto_ok =
-      compute_session_key(ctx->primary_key, *session_id, session_key);
+  bool crypto_ok = compute_session_key(ctx->primary_key, &ctx->params,
+                                       *session_id, session_key);
   if (!crypto_ok) {
     return CUBICRYPT_ERR_CRYPTO_LIB;
   }
@@ -361,6 +367,9 @@ cubicrypt_err cubicrypt_in_init(cubicrypt_in_ctx* ctx, const void* primary_key,
 
   memcpy(ctx->primary_key, primary_key, CUBICRYPT_PRIMARY_KEY_BYTES);
 
+  memcpy(ctx->params.context_id, params->context_id,
+         CUBICRYPT_CONTEXT_ID_BYTES);
+  ctx->params.epoch = params->epoch;
   ctx->params.session_id_bits = params->session_id_bits;
   ctx->params.frame_iv_bits = params->frame_iv_bits;
 
@@ -464,8 +473,8 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
   }
 
   uint8_t session_key[CUBICRYPT_SESSION_KEY_BYTES];
-  bool crypto_ok =
-      compute_session_key(ctx->primary_key, session_id, session_key);
+  bool crypto_ok = compute_session_key(ctx->primary_key, &ctx->params,
+                                       session_id, session_key);
   if (!crypto_ok) {
     return CUBICRYPT_ERR_CRYPTO_LIB;
   }

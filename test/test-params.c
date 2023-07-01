@@ -10,6 +10,9 @@ CUBICRYPT_TEST_MAIN(params) {
   test_invalid_params();
 
   cubicrypt_params params;
+  memset(params.context_id, 0, sizeof(params.context_id));
+  params.epoch = 0;
+
   for (params.session_id_bits = CUBICRYPT_MIN_SESSION_ID_BITS;
        params.session_id_bits <= CUBICRYPT_MAX_SESSION_ID_BITS;
        params.session_id_bits++) {
@@ -35,6 +38,8 @@ void test_invalid_params_instance(cubicrypt_params* params) {
 
 void test_invalid_params(void) {
   cubicrypt_params params;
+  memset(params.context_id, 0, sizeof(params.context_id));
+  params.epoch = 0;
 
   // Too few session identifier bits.
   params.session_id_bits = CUBICRYPT_MIN_SESSION_ID_BITS - 1;

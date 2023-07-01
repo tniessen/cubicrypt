@@ -33,7 +33,9 @@ static inline void exhaust_single_session(cubicrypt_out_ctx* sender,
 }
 
 static inline void test_with_session_id_bits(uint8_t session_id_bits) {
-  cubicrypt_params params = { .session_id_bits = session_id_bits,
+  cubicrypt_params params = { .context_id = { 0 },
+                              .epoch = 1234u,
+                              .session_id_bits = session_id_bits,
                               .frame_iv_bits = CUBICRYPT_MIN_FRAME_IV_BITS };
 
   cubicrypt_out_ctx sender;

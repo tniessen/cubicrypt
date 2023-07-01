@@ -34,6 +34,9 @@ typedef uint_fast8_t cubicrypt_err;
 /** The sending context has run out of session identifiers. */
 #define CUBICRYPT_ERR_SESSIONS_EXHAUSTED ((cubicrypt_err) 0x75)
 
+/** The size of the context ID, in bytes. */
+#define CUBICRYPT_CONTEXT_ID_BYTES 8
+
 /** The minimum number of bits that session IDs must consist of. */
 #define CUBICRYPT_MIN_SESSION_ID_BITS 16
 
@@ -62,6 +65,38 @@ typedef uint_fast8_t cubicrypt_err;
  * User-defined parameters for a Cubicrypt context.
  */
 typedef struct {
+  /**
+   * Identifies the context in which the primary key is being used.
+   *
+   * While this allows using the same primary key in multiple contexts, each
+   * primary key should be used in a small number of contexts only. For example,
+   * the same primary key may be used for both directions of a duplex channel,
+   * provided that different context IDs are used for each direction.
+   *
+   * This field has a size of 64 bits. For example, a duplex channel may use the
+   * context identifiers "gnd->sat" and "sat->gnd" for the two directions
+   * between a ground station and a satellite. Do not assume that it is safe to
+   * use the same primary key in a large number of contexts, let alone in 2^64
+   * contexts.
+   */
+  uint8_t context_id[CUBICRYPT_CONTEXT_ID_BYTES];
+
+  /**
+   * Identifies the epoch in which the primary key is being used.
+   *
+   * The epoch field functions very differently from the session ID and frame
+   * IV. While the session ID and frame IV are managed automatically by
+   * Cubicrypt, the epoch field is managed by the application. Mismanagement of
+   * the epoch field can lead to a total loss of security and functionality.
+   *
+   * Cubicrypt does not interpret this field. Applications may use it to begin
+   * a new sequence of session IDs and frame IVs while reusing the same primary
+   * key and context ID. However, such state transitions are not managed by
+   * core Cubicrypt functions, and must be implemented by the application
+   * itself.
+   */
+  uint32_t epoch;
+
   /**
    * The number of bits in a session identifier.
    *

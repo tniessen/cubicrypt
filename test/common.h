@@ -27,8 +27,12 @@ static const uint8_t test_primary_key[CUBICRYPT_PRIMARY_KEY_BYTES] = {
   0x0a, 0x21, 0x0a, 0x05, 0x7a, 0x59, 0x1a, 0x37, 0x41, 0x07
 };
 
-static const cubicrypt_params default_params = { CUBICRYPT_MAX_SESSION_ID_BITS,
-                                                 CUBICRYPT_MAX_FRAME_IV_BITS };
+static const cubicrypt_params default_params = {
+  .context_id = { 'g', 'n', 'd', '-', '>', 's', 'a', 't' },
+  .epoch = 0,
+  .session_id_bits = CUBICRYPT_MAX_SESSION_ID_BITS,
+  .frame_iv_bits = CUBICRYPT_MAX_FRAME_IV_BITS
+};
 
 static bool save_session_state(cubicrypt_session_state state, void* user_data) {
   cubicrypt_session_state* p = user_data;
