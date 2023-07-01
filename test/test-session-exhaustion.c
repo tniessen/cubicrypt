@@ -63,6 +63,29 @@ static inline void test_with_session_id_bits(uint8_t session_id_bits) {
       assert_eq(sender_persistent_state.id, session_id + 2);
       assert_eq(receiver.smallest_valid_session_state.id, session_id + 1);
       assert_eq(receiver_persistent_state.id, session_id + 2);
+
+      struct {
+        uint32_t id;
+        uint32_t iv;
+        uint32_t max_id;
+        uint32_t max_iv;
+      } out_status, in_status;
+
+      assert_ok(cubicrypt_out_get_session_status(
+          &sender, &out_status.id, &out_status.iv, &out_status.max_id,
+          &out_status.max_iv));
+      assert_eq(out_status.id, session_id + 1);
+      assert_eq(out_status.iv, 0);
+      assert_eq(out_status.max_id, max_session_id);
+      assert_eq(out_status.max_iv, 0xffu);
+
+      assert_ok(cubicrypt_in_get_session_status(
+          &receiver, &in_status.id, &in_status.iv, &in_status.max_id,
+          &in_status.max_iv));
+      assert_eq(in_status.id, session_id + 1);
+      assert_eq(in_status.iv, 0);
+      assert_eq(in_status.max_id, max_session_id);
+      assert_eq(in_status.max_iv, 0xffu);
     }
   }
 
@@ -86,6 +109,15 @@ static inline void test_with_session_id_bits(uint8_t session_id_bits) {
     assert_eq(sender.next_valid_session_state.iv, 0);
     assert_eq(sender_persistent_state.id, 0);
     assert_eq(sender_persistent_state.iv, 0);
+
+    assert_eq(
+        CUBICRYPT_ERR_SESSIONS_EXHAUSTED,
+        cubicrypt_out_get_session_status(&sender, NULL, NULL, NULL, NULL));
+
+    // We cannot test the receiver directly, but we can inspect its status.
+    assert_eq(
+        CUBICRYPT_ERR_SESSIONS_EXHAUSTED,
+        cubicrypt_in_get_session_status(&receiver, NULL, NULL, NULL, NULL));
   }
 }
 

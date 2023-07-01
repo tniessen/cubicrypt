@@ -178,6 +178,35 @@ cubicrypt_err cubicrypt_out_new_session(cubicrypt_out_ctx* ctx,
   return CUBICRYPT_ERR_OK;
 }
 
+cubicrypt_err cubicrypt_out_get_session_status(cubicrypt_out_ctx* ctx,
+                                               uint32_t* session_id,
+                                               uint32_t* frame_iv,
+                                               uint32_t* max_session_id,
+                                               uint32_t* max_frame_iv) {
+  if (ctx == NULL || !ctx->initialized) {
+    return CUBICRYPT_ERR_PARAMS;
+  }
+
+  if (ctx->next_valid_session_state.id == 0) {
+    return CUBICRYPT_ERR_SESSIONS_EXHAUSTED;
+  }
+
+  if (session_id != NULL) {
+    *session_id = ctx->next_valid_session_state.id;
+  }
+  if (frame_iv != NULL) {
+    *frame_iv = ctx->next_valid_session_state.iv;
+  }
+  if (max_session_id != NULL) {
+    *max_session_id = mask_u32(ctx->params.session_id_bits);
+  }
+  if (max_frame_iv != NULL) {
+    *max_frame_iv = mask_u32(ctx->params.frame_iv_bits);
+  }
+
+  return CUBICRYPT_ERR_OK;
+}
+
 static cubicrypt_err get_then_increment_session_state(cubicrypt_out_ctx* ctx,
                                                       uint32_t* session_id,
                                                       uint32_t* frame_iv) {
@@ -355,6 +384,35 @@ cubicrypt_err cubicrypt_in_init(cubicrypt_in_ctx* ctx, const void* primary_key,
 #endif
 
   ctx->initialized = true;
+  return CUBICRYPT_ERR_OK;
+}
+
+cubicrypt_err cubicrypt_in_get_session_status(cubicrypt_in_ctx* ctx,
+                                              uint32_t* session_id,
+                                              uint32_t* frame_iv,
+                                              uint32_t* max_session_id,
+                                              uint32_t* max_frame_iv) {
+  if (ctx == NULL || !ctx->initialized) {
+    return CUBICRYPT_ERR_PARAMS;
+  }
+
+  if (ctx->smallest_valid_session_state.id == 0) {
+    return CUBICRYPT_ERR_SESSIONS_EXHAUSTED;
+  }
+
+  if (session_id != NULL) {
+    *session_id = ctx->smallest_valid_session_state.id;
+  }
+  if (frame_iv != NULL) {
+    *frame_iv = ctx->smallest_valid_session_state.iv;
+  }
+  if (max_session_id != NULL) {
+    *max_session_id = mask_u32(ctx->params.session_id_bits);
+  }
+  if (max_frame_iv != NULL) {
+    *max_frame_iv = mask_u32(ctx->params.frame_iv_bits);
+  }
+
   return CUBICRYPT_ERR_OK;
 }
 

@@ -188,6 +188,43 @@ cubicrypt_err cubicrypt_out_new_session(cubicrypt_out_ctx* ctx,
                                         uint32_t session_id);
 
 /**
+ * Retrieves the current and the maximum session ID and frame IV.
+ *
+ * Each sending context has a finite life span, after which it becomes
+ * inoperable. This is due to the limited number of session IDs, as well as the
+ * limited number of frame IVs per session.
+ *
+ * Applications can use this function to estimate the remaining life span of the
+ * context in order to determine when a new context should be created.
+ *
+ * A sending context becomes inoperable when it exceeds the maximum session ID.
+ * In that case, this function returns CUBICRYPT_ERR_SESSIONS_EXHAUSTED.
+ *
+ * If this function returns CUBICRYPT_ERR_OK, session_id will be set to the
+ * current session ID and max_session_id will be set to the maximum session ID.
+ * The current session ID is always at least one and at most the maximum session
+ * ID.
+ *
+ * The frame IV is incremented within each session and generally insignificant
+ * for estimating the context's remaining life span. It is provided mainly for
+ * debugging and statistical purposes.
+ *
+ * Each of the four pointers may be `NULL`.
+ *
+ * @param ctx The `cubicrypt_out_ctx`.
+ * @param session_id Receives the current session ID.
+ * @param frame_iv Receives the current frame IV.
+ * @param max_session_id Receives the maximum session ID.
+ * @param max_session_id Receives the maximum frame IV.
+ * @return Cubicrypt error code
+ */
+cubicrypt_err cubicrypt_out_get_session_status(cubicrypt_out_ctx* ctx,
+                                               uint32_t* session_id,
+                                               uint32_t* frame_iv,
+                                               uint32_t* max_session_id,
+                                               uint32_t* max_frame_iv);
+
+/**
  * Encodes a frame to be sent as a secure transmission.
  *
  * This function produces a session ID, a frame IV, an authentication tag,
@@ -316,6 +353,43 @@ cubicrypt_err cubicrypt_in_init(cubicrypt_in_ctx* ctx, const void* primary_key,
                                 cubicrypt_session_persistent_load_fn load_state,
                                 cubicrypt_session_persistent_save_fn save_state,
                                 void* storage_user_data);
+
+/**
+ * Retrieves the current and the maximum session ID and frame IV.
+ *
+ * Each receiving context has a finite life span, after which it becomes
+ * inoperable. This is due to the limited number of session IDs, as well as the
+ * limited number of frame IVs per session.
+ *
+ * Applications can use this function to estimate the remaining life span of the
+ * context in order to determine when a new context should be created.
+ *
+ * A receiving context becomes inoperable when it exceeds the maximum session
+ * ID. In that case, this function returns CUBICRYPT_ERR_SESSIONS_EXHAUSTED.
+ *
+ * If this function returns CUBICRYPT_ERR_OK, session_id will be set to the
+ * current session ID and max_session_id will be set to the maximum session ID.
+ * The current session ID is always at least one and at most the maximum session
+ * ID.
+ *
+ * The frame IV is incremented within each session and generally insignificant
+ * for estimating the context's remaining life span. It is provided mainly for
+ * debugging and statistical purposes.
+ *
+ * Each of the four pointers may be `NULL`.
+ *
+ * @param ctx The `cubicrypt_in_ctx`.
+ * @param session_id Receives the current session ID.
+ * @param frame_iv Receives the current frame IV.
+ * @param max_session_id Receives the maximum session ID.
+ * @param max_session_id Receives the maximum frame IV.
+ * @return Cubicrypt error code
+ */
+cubicrypt_err cubicrypt_in_get_session_status(cubicrypt_in_ctx* ctx,
+                                              uint32_t* session_id,
+                                              uint32_t* frame_iv,
+                                              uint32_t* max_session_id,
+                                              uint32_t* max_frame_iv);
 
 /**
  * Decodes a frame that was received as a secure transmission.
