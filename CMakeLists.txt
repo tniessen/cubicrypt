@@ -58,6 +58,13 @@ else()
   message(FATAL_ERROR "Invalid CRYPTO_BACKEND")
 endif()
 
+foreach(backend IN ITEMS cmox gcrypt mbedtls nettle openssl)
+  string(TOUPPER ${backend} backend)
+  unset(CUBICRYPT_CRYPTO_BACKEND_IS_${backend} CACHE)
+endforeach()
+string(TOUPPER ${CRYPTO_BACKEND} backend)
+set(CUBICRYPT_CRYPTO_BACKEND_IS_${backend} ON CACHE BOOL "The selected crypto backend")
+
 option(CUBICRYPT_NO_OUT_OF_ORDER "Disable out-of-order decoding")
 include(CMakeDependentOption)
 cmake_dependent_option(CUBICRYPT_OUT_OF_ORDER_LARGE_WINDOW "Increase the out-of-order window size to 64 bits" OFF "NOT CUBICRYPT_NO_OUT_OF_ORDER" OFF)
