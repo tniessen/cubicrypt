@@ -34,15 +34,16 @@ static const cubicrypt_params default_params = {
   .frame_iv_bits = CUBICRYPT_MAX_FRAME_IV_BITS
 };
 
-static bool save_session_state(cubicrypt_session_state state, void* user_data) {
+__attribute__((unused)) static bool save_session_state(
+    cubicrypt_session_state state, void* user_data) {
   cubicrypt_session_state* p = user_data;
   p->id = state.id;
   p->iv = state.iv;
   return true;
 }
 
-static bool load_session_state(cubicrypt_session_state* state,
-                               void* user_data) {
+__attribute__((unused)) static bool load_session_state(
+    cubicrypt_session_state* state, void* user_data) {
   cubicrypt_session_state* p = user_data;
   state->id = p->id;
   state->iv = p->iv;

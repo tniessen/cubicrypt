@@ -2,12 +2,22 @@
 
 #include "../../include/cubicrypt.h"
 
+#define CUBICRYPT_EXTERN extern
+#include "../../include/cubicrypt/external.h"
+
 #include <assert.h>
 
 #include <mbedtls/aes.h>
 #include <mbedtls/constant_time.h>
 #include <mbedtls/gcm.h>
 #include <mbedtls/version.h>
+
+#ifndef CUBICRYPT_NO_KEY_EXCHANGE
+#  include <mbedtls/ecdh.h>
+#  include <mbedtls/entropy.h>
+#  include <mbedtls/mbedtls_config.h>
+#  include <mbedtls/sha256.h>
+#endif
 
 // Mbed TLS 3.0 supports GMAC, but not mbedtls_ct_memcmp(), which was added in
 // the next minor release.
@@ -117,3 +127,113 @@ bool cubicrypt_aes_128_gmac_verify(const void* key, const void* iv,
 
   return true;
 }
+
+#ifndef CUBICRYPT_NO_KEY_EXCHANGE
+
+bool cubicrypt_x25519_keygen(void* public_key, void* private_key) {
+  cubicrypt_mbedtls_entropy_func f_rng;
+  void* f_rng_ctx;
+#  ifndef MBEDTLS_NO_PLATFORM_ENTROPY
+  mbedtls_entropy_context entropy;
+  mbedtls_entropy_init(&entropy);
+  f_rng = mbedtls_entropy_func;
+  f_rng_ctx = &entropy;
+#  else
+  if (!__cubicrypt_get_mbedtls_entropy_func(&f_rng, &f_rng_ctx)) {
+    return false;
+  }
+#  endif
+
+  const mbedtls_ecp_group_id grp_id = MBEDTLS_ECP_DP_CURVE25519;
+  assert(mbedtls_ecdh_can_do(grp_id));
+
+  mbedtls_ecp_group grp;
+  mbedtls_ecp_group_init(&grp);
+  if (mbedtls_ecp_group_load(&grp, grp_id) != 0) {
+    mbedtls_ecp_group_free(&grp);
+    return false;
+  }
+
+  mbedtls_ecp_point q;
+  mbedtls_ecp_point_init(&q);
+  mbedtls_mpi d;
+  mbedtls_mpi_init(&d);
+
+  size_t olen;
+  bool ok = mbedtls_ecdh_gen_public(&grp, &d, &q, f_rng, f_rng_ctx) == 0 &&
+            mbedtls_mpi_write_binary_le(&d, private_key,
+                                        CUBICRYPT_KX_PRIVATE_KEY_BYTES) == 0 &&
+            mbedtls_ecp_point_write_binary(&grp, &q, MBEDTLS_ECP_PF_COMPRESSED,
+                                           &olen, public_key,
+                                           CUBICRYPT_KX_PUBLIC_KEY_BYTES) == 0;
+  assert(!ok || olen == CUBICRYPT_KX_PUBLIC_KEY_BYTES);
+
+#  ifndef MBEDTLS_NO_PLATFORM_ENTROPY
+  mbedtls_entropy_free(&entropy);
+#  endif
+
+  mbedtls_ecp_group_free(&grp);
+  mbedtls_ecp_point_free(&q);
+  mbedtls_mpi_free(&d);
+
+  return ok;
+}
+
+bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
+                              const void* private_key) {
+  cubicrypt_mbedtls_entropy_func f_rng;
+  void* f_rng_ctx;
+#  ifndef MBEDTLS_NO_PLATFORM_ENTROPY
+  mbedtls_entropy_context entropy;
+  mbedtls_entropy_init(&entropy);
+  f_rng = mbedtls_entropy_func;
+  f_rng_ctx = &entropy;
+#  else
+  if (!__cubicrypt_get_mbedtls_entropy_func(&f_rng, &f_rng_ctx)) {
+    return false;
+  }
+#  endif
+
+  const mbedtls_ecp_group_id grp_id = MBEDTLS_ECP_DP_CURVE25519;
+  assert(mbedtls_ecdh_can_do(grp_id));
+
+  mbedtls_ecp_group grp;
+  mbedtls_ecp_group_init(&grp);
+  if (mbedtls_ecp_group_load(&grp, grp_id) != 0) {
+    mbedtls_ecp_group_free(&grp);
+    return false;
+  }
+
+  mbedtls_ecp_point q;
+  mbedtls_ecp_point_init(&q);
+  mbedtls_mpi d;
+  mbedtls_mpi_init(&d);
+  mbedtls_mpi z;
+  mbedtls_mpi_init(&z);
+
+  bool ok =
+      mbedtls_ecp_point_read_binary(&grp, &q, public_key,
+                                    CUBICRYPT_KX_PUBLIC_KEY_BYTES) == 0 &&
+      mbedtls_mpi_read_binary_le(&d, private_key,
+                                 CUBICRYPT_KX_PRIVATE_KEY_BYTES) == 0 &&
+      mbedtls_ecdh_compute_shared(&grp, &z, &q, &d, f_rng, f_rng_ctx) == 0 &&
+      mbedtls_mpi_write_binary_le(&z, shared_secret,
+                                  CUBICRYPT_X25519_SHARED_SECRET_BYTES) == 0;
+
+#  ifndef MBEDTLS_NO_PLATFORM_ENTROPY
+  mbedtls_entropy_free(&entropy);
+#  endif
+
+  mbedtls_ecp_group_free(&grp);
+  mbedtls_ecp_point_free(&q);
+  mbedtls_mpi_free(&d);
+  mbedtls_mpi_free(&z);
+
+  return ok;
+}
+
+bool cubicrypt_x25519_mix(void* out, const void* in) {
+  return mbedtls_sha256(in, CUBICRYPT_X25519_SHARED_SECRET_BYTES, out, 0) == 0;
+}
+
+#endif

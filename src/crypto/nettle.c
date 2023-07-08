@@ -8,6 +8,15 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef CUBICRYPT_NO_KEY_EXCHANGE
+#  include <nettle/curve25519.h>
+#  include <nettle/sha2.h>
+
+#  include <unistd.h>  // getentropy()
+
+#  include "x25519-helper.h"
+#endif
+
 bool cubicrypt_aes_256_cipher(const void* key, const void* block, void* out) {
   struct aes256_ctx ctx;
   aes256_set_encrypt_key(&ctx, key);
@@ -120,3 +129,30 @@ bool cubicrypt_aes_128_gmac_verify(const void* key, const void* iv,
                         CUBICRYPT_AES_GCM_AUTH_TAG_BYTES) != 0);
   return true;
 }
+
+#ifndef CUBICRYPT_NO_KEY_EXCHANGE
+
+bool cubicrypt_x25519_keygen(void* public_key, void* private_key) {
+  // TODO: reconsider using getentropy() without a DRBG here
+  int ret = getentropy(private_key, CUBICRYPT_KX_PRIVATE_KEY_BYTES);
+  if (ret != 0) return false;
+  x25519_clamp_private_key(private_key);
+  curve25519_mul_g(public_key, private_key);
+  return true;
+}
+
+bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
+                              const void* private_key) {
+  curve25519_mul(shared_secret, private_key, public_key);
+  return true;
+}
+
+bool cubicrypt_x25519_mix(void* out, const void* in) {
+  struct sha256_ctx ctx;
+  sha256_init(&ctx);
+  sha256_update(&ctx, SHA256_DIGEST_SIZE, in);
+  sha256_digest(&ctx, SHA256_DIGEST_SIZE, out);
+  return true;
+}
+
+#endif

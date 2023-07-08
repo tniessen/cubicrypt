@@ -78,6 +78,9 @@ typedef struct {
    * between a ground station and a satellite. Do not assume that it is safe to
    * use the same primary key in a large number of contexts, let alone in 2^64
    * contexts.
+   *
+   * Instead, consider using the key exchange functions further below to
+   * generate new primary keys for new contexts.
    */
   uint8_t context_id[CUBICRYPT_CONTEXT_ID_BYTES];
 
@@ -497,5 +500,111 @@ cubicrypt_err cubicrypt_in_verify_only(cubicrypt_in_ctx* ctx,
  * @return Cubicrypt error code
  */
 cubicrypt_err cubicrypt_in_deinit(cubicrypt_in_ctx* ctx);
+
+#ifndef CUBICRYPT_NO_KEY_EXCHANGE
+
+/**
+ * The size of a public key that is used for a key exchange, in bytes.
+ */
+#  define CUBICRYPT_KX_PUBLIC_KEY_BYTES 32
+
+/**
+ * The size of a private key that is used for a key exchange, in bytes.
+ */
+#  define CUBICRYPT_KX_PRIVATE_KEY_BYTES 32
+
+/**
+ * Generates a new key pair for use with a key exchange operation.
+ *
+ * The life span of Cubicrypt contexts is finite by design. The primary key can
+ * only be used to derive a finite number of session keys, and each session key
+ * can only be used for a finite number of frames. While this may be acceptable
+ * for many applications, it may be desirable to be able to exchange new primary
+ * keys with the other endpoint in order to create entirely new Cubicrypt
+ * contexts.
+ *
+ * This function can be used before a key exchange operation to generate a new
+ * ephemeral key pair. It can also be used to generate a static key pair that
+ * can be used for multiple key exchange operations. While ephemeral key pairs
+ * are often preferred for security reasons, it may be desirable to assign a
+ * static key pair to a particular endpoint (e.g., a satellite).
+ *
+ * This function fails if and only if any of its arguments are NULL or if the
+ * key pair generation operation fails due to a failure of the underlying crypto
+ * library.
+ *
+ * @param[out] public_key The generated public key will be written to this
+ *                        location as a sequence of
+ *                        CUBICRYPT_KX_PUBLIC_KEY_BYTES bytes.
+ * @param[out] private_key The generated private key will be written to this
+ *                         location as a sequence of
+ *                         CUBICRYPT_KX_PRIVATE_KEY_BYTES bytes.
+ * @return `true` if the key pair generation operation succeeded, `false`
+ *         otherwise.
+ */
+bool cubicrypt_kx_generate_keypair(void* public_key, void* private_key);
+
+/**
+ * Derives a primary key by performing the key exchange operation with the given
+ * public key and the given private key.
+ *
+ * Forward secrecy is provided only if both keys are ephemeral. At least one of
+ * the keys must be ephemeral, otherwise, the derived primary key will be
+ * static. In other words, at most one of the given keys must be static.
+ *
+ * This function fails if and only if any of its arguments are NULL or if the
+ * key exchange operation fails, either due to an invalid input or due to a
+ * failure of the underlying crypto library.
+ *
+ * @param[out] new_primary_key The derived primary key will be written to this
+ *                             location as a sequence of
+ *                             CUBICRYPT_PRIMARY_KEY_BYTES bytes.
+ * @param[in] other_public_key The public key of the other endpoint, which must
+ *                             be a sequence of CUBICRYPT_KX_PUBLIC_KEY_BYTES.
+ * @param[in] own_private_key The private key of the local endpoint, which must
+ *                            be a sequence of CUBICRYPT_KX_PRIVATE_KEY_BYTES.
+ * @return `true` if the key exchange operation succeeded, `false` otherwise.
+ */
+bool cubicrypt_kx_derive_primary_key(void* new_primary_key,
+                                     const void* other_public_key,
+                                     const void* own_private_key);
+
+/**
+ * Generates a new primary key for one or more Cubicrypt contexts by generating
+ * a new key pair and performing the key exchange operation with the given
+ * public key and the newly generated key pair.
+ *
+ * This function is particularly useful when one endpoint uses a static key pair
+ * for computing new primary keys. The endpoint that does not use a static key
+ * pair can use this function to generate a new (ephermal) key pair and perform
+ * the key exchange operation with the other endpoint's (static) public key. The
+ * generated public key must then be transmitted to the other endpoint so that
+ * the respective application can derive the same primary key from its (static)
+ * private key and the received public key.
+ *
+ * Otherwise, forward secrecy is provided if and only if the other endpoint
+ * uses an ephemeral key pair, that is, if and only if `other_public_key` is
+ * ephemeral.
+ *
+ * This function fails if and only if any of its arguments are NULL or if the
+ * key exchange operation fails, either due to an invalid input or due to a
+ * failure of the underlying crypto library.
+ *
+ * @param[out] new_primary_key The derived primary key will be written to this
+ *                             location as a sequence of
+ *                             CUBICRYPT_PRIMARY_KEY_BYTES bytes.
+ * @param[in] other_public_key The public key of the other endpoint, which must
+ *                             be a sequence of CUBICRYPT_KX_PUBLIC_KEY_BYTES
+ *                             bytes.
+ * @param[out] ephemeral_public_key The generated ephemeral public key will be
+ *                                  written to this location as a sequence of
+ *                                  CUBICRYPT_KX_PUBLIC_KEY_BYTES bytes.
+ * @return `true` if the operation succeeded, `false` otherwise.
+ */
+bool cubicrypt_kx_generate_primary_key(void* new_primary_key,
+                                       const void* other_public_key,
+                                       void* ephemeral_public_key);
+
+#endif
 
 #endif  // __CUBICRYPT_H__

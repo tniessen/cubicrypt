@@ -56,4 +56,26 @@ bool cubicrypt_aes_128_gmac_verify(const void* key, const void* iv,
                                    const cubicrypt_iovecs* iovecs,
                                    const void* auth_tag, bool* result);
 
+#ifndef CUBICRYPT_NO_KEY_EXCHANGE
+
+#  define CUBICRYPT_X25519_SHARED_SECRET_BYTES 32
+
+/**
+ * Generates a new key pair for X25519.
+ */
+bool cubicrypt_x25519_keygen(void* public_key, void* private_key);
+
+/**
+ * Performs the X25519 key exchange operation.
+ */
+bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
+                              const void* private_key);
+
+/**
+ * Applies a hash function to the output of the X25519 key exchange.
+ */
+bool cubicrypt_x25519_mix(void* out, const void* in);
+
+#endif
+
 #endif  // __CRYPTO__AES_H__

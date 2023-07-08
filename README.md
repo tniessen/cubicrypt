@@ -14,6 +14,8 @@ primary key to derive 128-bit session keys, which are again used with [AES][] in
 [Galois/Counter Mode (GCM)][]. Even on embedded devices, AES-GCM often benefits
 from hardware acceleration.
 
+The optional key exchange extension is based on [X25519][] and [SHA-256][].
+
 Cubicrypt supports the following implementations of the required cryptographic
 primitives:
 
@@ -28,5 +30,7 @@ primitives:
 [Mbed TLS]: https://github.com/ARMmbed/mbedtls
 [Nettle]: https://github.com/gnutls/nettle
 [OpenSSL]: https://github.com/openssl/openssl
+[SHA-256]: https://en.wikipedia.org/wiki/SHA-2
 [STM32 cryptographic library (CMOX)]: https://www.st.com/en/embedded-software/x-cube-cryptolib.html
+[X25519]: https://en.wikipedia.org/wiki/Curve25519
 [gcrypt]: https://github.com/gpg/libgcrypt
