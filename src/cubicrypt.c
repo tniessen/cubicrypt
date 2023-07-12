@@ -1,5 +1,5 @@
 #include "../include/cubicrypt.h"
-#include "crypto/aes.h"
+#include "crypto/primitives.h"
 
 #include <assert.h>
 #include <stdbool.h>

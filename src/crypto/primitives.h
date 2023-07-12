@@ -1,5 +1,5 @@
-#ifndef __CRYPTO__AES_H__
-#define __CRYPTO__AES_H__
+#ifndef __CRYPTO__PRIMITIVES_H__
+#define __CRYPTO__PRIMITIVES_H__
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -78,4 +78,4 @@ bool cubicrypt_x25519_mix(void* out, const void* in);
 
 #endif
 
-#endif  // __CRYPTO__AES_H__
+#endif  // __CRYPTO__PRIMITIVES_H__

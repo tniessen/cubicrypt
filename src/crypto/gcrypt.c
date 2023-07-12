@@ -1,4 +1,4 @@
-#include "aes.h"
+#include "primitives.h"
 
 #include "../../include/cubicrypt.h"
 
