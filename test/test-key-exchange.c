@@ -29,6 +29,29 @@ static const uint8_t expected_primary_key[CUBICRYPT_PRIMARY_KEY_BYTES] = {
   0x06, 0x41, 0x3a, 0x8e, 0x5f, 0xa1, 0xc2, 0x5b, 0x25, 0xb6, 0xc6,
   0x40, 0x6f, 0x2d, 0xa7, 0x2f, 0xfa, 0x82, 0xb9, 0x8c, 0xed
 };
+
+// Helpers for naively validating public and private keys.
+static const uint8_t x25519_prime_big_endian[32] = {
+  0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xed
+};
+
+static inline bool is_valid_private_key(const uint8_t* key) {
+  // Private keys must be clamped correctly.
+  return (key[0] & 248u) == key[0] && (key[31] & 192u) == 64u;
+}
+
+static inline bool is_valid_public_key(const uint8_t* key) {
+  // Public keys must be smaller than 2^255-19. Note that X25519 uses little
+  // endian encoding, so we need to compare the bytes in reverse order.
+  for (size_t i = 0; i < 32; i++) {
+    uint8_t a = key[31 - i];
+    uint8_t b = x25519_prime_big_endian[i];
+    if (a != b) return a < b;
+  }
+  return false;
+}
 #endif
 
 CUBICRYPT_TEST_MAIN(key_exchange) {
@@ -38,11 +61,15 @@ CUBICRYPT_TEST_MAIN(key_exchange) {
   uint8_t a_public_key[CUBICRYPT_KX_PUBLIC_KEY_BYTES];
   uint8_t a_private_key[CUBICRYPT_KX_PRIVATE_KEY_BYTES];
   assert(cubicrypt_kx_generate_keypair(a_public_key, a_private_key));
+  assert(is_valid_private_key(a_private_key));
+  assert(is_valid_public_key(a_public_key));
 
   // Generate another key pair.
   uint8_t b_public_key[CUBICRYPT_KX_PUBLIC_KEY_BYTES];
   uint8_t b_private_key[CUBICRYPT_KX_PRIVATE_KEY_BYTES];
   assert(cubicrypt_kx_generate_keypair(b_public_key, b_private_key));
+  assert(is_valid_private_key(b_private_key));
+  assert(is_valid_public_key(b_public_key));
 
   // The generated key pairs should be different.
   assert(memcmp(a_public_key, b_public_key, CUBICRYPT_KX_PUBLIC_KEY_BYTES) !=
@@ -69,6 +96,7 @@ CUBICRYPT_TEST_MAIN(key_exchange) {
   uint8_t ephemeral_public_key_for_a[CUBICRYPT_KX_PUBLIC_KEY_BYTES];
   assert(cubicrypt_kx_generate_primary_key(some_primary_key_a, a_public_key,
                                            ephemeral_public_key_for_a));
+  assert(is_valid_public_key(ephemeral_public_key_for_a));
   // The same key should be derived by A.
   assert(cubicrypt_kx_derive_primary_key(
       a_primary_key, ephemeral_public_key_for_a, a_private_key));
@@ -81,6 +109,7 @@ CUBICRYPT_TEST_MAIN(key_exchange) {
   uint8_t ephemeral_public_key_for_b[CUBICRYPT_KX_PUBLIC_KEY_BYTES];
   assert(cubicrypt_kx_generate_primary_key(some_primary_key_b, b_public_key,
                                            ephemeral_public_key_for_b));
+  assert(is_valid_public_key(ephemeral_public_key_for_b));
   // The same key should be derived by B.
   assert(cubicrypt_kx_derive_primary_key(
       b_primary_key, ephemeral_public_key_for_b, b_private_key));
@@ -108,6 +137,10 @@ CUBICRYPT_TEST_MAIN(key_exchange) {
 
   // Lastly, test a statically generated test vector.
   memset(primary_key, 0, CUBICRYPT_PRIMARY_KEY_BYTES);
+  assert(is_valid_private_key(sat_private_key));
+  assert(is_valid_public_key(sat_public_key));
+  assert(is_valid_private_key(gnd_private_key));
+  assert(is_valid_public_key(gnd_public_key));
   assert(cubicrypt_kx_derive_primary_key(primary_key, sat_public_key,
                                          gnd_private_key));
   assert_eq(
