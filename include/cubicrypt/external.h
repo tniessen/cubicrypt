@@ -3,6 +3,10 @@
 
 #include <cubicrypt/config.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef CUBICRYPT_EXTERN
 // Applications that consume this header file likely do not want to mark the
 // functions as extern. This macro is defined in src/crypto/{cmox,mbedtls}.c.
@@ -76,6 +80,10 @@ CUBICRYPT_EXTERN bool __cubicrypt_get_mbedtls_entropy_func(
 #    endif
 
 #  endif
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif  // __CUBICRYPT_EXTERNAL_H__

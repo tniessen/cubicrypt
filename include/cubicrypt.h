@@ -9,6 +9,10 @@
 #  include <cubicrypt/config.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Cubicrypt functions have this return type. All codes other than
  * `CUBICRYPT_ERR_OK` indicate errors.
@@ -605,6 +609,10 @@ bool cubicrypt_kx_generate_primary_key(void* new_primary_key,
                                        const void* other_public_key,
                                        void* ephemeral_public_key);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif  // __CUBICRYPT_H__
