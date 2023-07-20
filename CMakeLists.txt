@@ -5,7 +5,13 @@ project(cubicrypt C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
-add_compile_options(-Wall -Wextra -pedantic -Werror)
+if(MSVC)
+  # TODO: do not suppress C4267 when compiling with MSVC
+  add_compile_options(/W3 /WX /wd4267)
+  add_link_options(/WX)
+else()
+  add_compile_options(-Wall -Wextra -pedantic -Werror)
+endif()
 
 # TODO: ubsan and KCC and clang-tidy
 

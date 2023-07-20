@@ -21,6 +21,12 @@
 #  define CUBICRYPT_TEST_MAIN(name) void cubicrypt_test_##name(void)
 #endif
 
+#ifndef _MSC_VER
+#  define MAYBE_UNUSED __attribute__((unused))
+#else
+#  define MAYBE_UNUSED
+#endif
+
 static const uint8_t test_primary_key[CUBICRYPT_PRIMARY_KEY_BYTES] = {
   0xc8, 0xbb, 0xa8, 0xc0, 0x06, 0xef, 0x1b, 0x7c, 0x71, 0x11, 0xfd,
   0xf3, 0xe8, 0x92, 0x7a, 0xe9, 0x32, 0x71, 0xb1, 0x8b, 0x01, 0x4f,
@@ -34,16 +40,16 @@ static const cubicrypt_params default_params = {
   .frame_iv_bits = CUBICRYPT_MAX_FRAME_IV_BITS
 };
 
-__attribute__((unused)) static bool save_session_state(
-    cubicrypt_session_state state, void* user_data) {
+MAYBE_UNUSED static bool save_session_state(cubicrypt_session_state state,
+                                            void* user_data) {
   cubicrypt_session_state* p = user_data;
   p->id = state.id;
   p->iv = state.iv;
   return true;
 }
 
-__attribute__((unused)) static bool load_session_state(
-    cubicrypt_session_state* state, void* user_data) {
+MAYBE_UNUSED static bool load_session_state(cubicrypt_session_state* state,
+                                            void* user_data) {
   cubicrypt_session_state* p = user_data;
   state->id = p->id;
   state->iv = p->iv;

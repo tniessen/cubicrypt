@@ -59,3 +59,30 @@ jobs:
       - name: Test
         working-directory: ${{runner.workspace}}/build
         run: ctest -C ${{matrix.buildtype}} --output-on-failure
+  test-windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        backend:
+          - openssl
+        buildtype:
+          - Debug
+          - RelWithDebInfo
+          - Release
+          - MinSizeRel
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install OpenSSL
+        run: choco install --confirm --no-progress openssl
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Configure CMake
+        working-directory: ${{runner.workspace}}/build
+        run: cmake ${{github.workspace}} -DCRYPTO_BACKEND=${{matrix.backend}} -DCMAKE_BUILD_TYPE=${{matrix.buildtype}}
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config ${{matrix.buildtype}}
+      - name: Test
+        working-directory: ${{runner.workspace}}/build
+        run: ctest -C ${{matrix.buildtype}} --output-on-failure
