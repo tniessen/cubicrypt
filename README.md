@@ -9,6 +9,8 @@ space. The library minimizes write operations to persistent storage to reduce
 wear and delays and does not require a cryptographically secure source of
 randomness for basic operation.
 
+See [Cubicrypt protocol][] for a detailed description of the protocol.
+
 The only required cryptographic primitive is [AES][]. It is used with a 256-bit
 primary key to derive 128-bit session keys, which are again used with [AES][] in
 [Galois/Counter Mode (GCM)][]. Even on embedded devices, AES-GCM often benefits
@@ -26,6 +28,7 @@ primitives:
 - [STM32 cryptographic library (CMOX)][]
 
 [AES]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+[Cubicrypt protocol]: ./PROTOCOL.md
 [Galois/Counter Mode (GCM)]: https://en.wikipedia.org/wiki/Galois/Counter_Mode
 [Mbed TLS]: https://github.com/ARMmbed/mbedtls
 [Nettle]: https://github.com/gnutls/nettle
