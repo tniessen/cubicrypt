@@ -59,6 +59,45 @@ jobs:
       - name: Test
         working-directory: ${{runner.workspace}}/build
         run: ctest -C ${{matrix.buildtype}} --output-on-failure
+  test-macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        backend:
+          - nettle
+          - openssl
+        buildtype:
+          - Debug
+          - RelWithDebInfo
+          - Release
+          - MinSizeRel
+        compiler:
+          - gcc
+          - clang
+        sanitizer:
+          - ASAN
+          - UBSAN
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install nettle
+        if: matrix.backend == 'nettle'
+        run: |
+          brew install nettle \
+            && brew ls --verbose nettle \
+            && echo "CFLAGS=$(pkg-config --cflags nettle)" >> "$GITHUB_ENV" \
+            && echo "LDFLAGS=$(pkg-config --libs nettle)" >> "$GITHUB_ENV"
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Configure CMake
+        working-directory: ${{runner.workspace}}/build
+        run: cmake ${{github.workspace}} -DCRYPTO_BACKEND=${{matrix.backend}} -DCMAKE_BUILD_TYPE=${{matrix.buildtype}} -DCMAKE_C_COMPILER=${{matrix.compiler}} -DENABLE_${{matrix.sanitizer}}=ON
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config ${{matrix.buildtype}}
+      - name: Test
+        working-directory: ${{runner.workspace}}/build
+        run: ctest -C ${{matrix.buildtype}} --output-on-failure
   test-windows:
     runs-on: windows-latest
     strategy:

@@ -12,7 +12,7 @@
 #  include <nettle/curve25519.h>
 #  include <nettle/sha2.h>
 
-#  include <unistd.h>  // getentropy()
+#  include <sys/random.h>  // getentropy()
 
 #  include "x25519-helper.h"
 #endif
