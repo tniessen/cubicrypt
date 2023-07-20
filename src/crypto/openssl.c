@@ -5,6 +5,10 @@
 #include <assert.h>
 #include <openssl/evp.h>
 
+#ifndef CUBICRYPT_NO_KEY_EXCHANGE
+#  include <string.h>
+#endif
+
 bool cubicrypt_aes_256_cipher(const void* key, const void* block, void* out) {
   EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
   if (ctx == NULL) {
@@ -204,9 +208,20 @@ bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
   return ok;
 }
 
-bool cubicrypt_x25519_mix(void* out, const void* in) {
-  return EVP_Q_digest(NULL, "SHA256", NULL, in,
-                      CUBICRYPT_X25519_SHARED_SECRET_BYTES, out, NULL) == 1;
+bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
+                          const void* pk1) {
+  // TODO: consider not using the one-shot function EVP_Q_digest
+  uint8_t in[CUBICRYPT_X25519_SHARED_SECRET_BYTES +
+             2 * CUBICRYPT_KX_PUBLIC_KEY_BYTES];
+  memcpy(in, ss, CUBICRYPT_X25519_SHARED_SECRET_BYTES);
+  memcpy(in + CUBICRYPT_X25519_SHARED_SECRET_BYTES, pk0,
+         CUBICRYPT_KX_PUBLIC_KEY_BYTES);
+  memcpy(
+      in + CUBICRYPT_X25519_SHARED_SECRET_BYTES + CUBICRYPT_KX_PUBLIC_KEY_BYTES,
+      pk1, CUBICRYPT_KX_PUBLIC_KEY_BYTES);
+  bool ok = EVP_Q_digest(NULL, "SHA256", NULL, in, sizeof(in), out, NULL) == 1;
+  OPENSSL_cleanse(in, sizeof(in));
+  return ok;
 }
 
 #endif

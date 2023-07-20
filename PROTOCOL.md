@@ -223,13 +223,19 @@ primary keys that can be used with the core protocol. By correctly utilizing
 this mechanism, applications can overcome the finite life span of Cubicrypt
 contexts.
 
-Cubicrypt uses a standard construction based on X25519 and SHA-256 for key
-exchanges:
+Cubicrypt uses a construction based on [X25519][] and [SHA-256][] for key
+exchanges that works as follows:
 
 ```
 shared_secret := X25519(own_private_key, peer_public_key)
-primary_key := SHA-256(shared_secret)
+pk0 := min(own_public_key, peer_public_key)
+pk1 := max(own_public_key, peer_public_key)
+primary_key := SHA-256(shared_secret || pk0 || pk1)
 ```
+
+In this context, the functions `min()` and `max()` interpret their arguments as
+256-bit unsigned integers in little-endian byte order, which is the byte order
+that Curve25519 uses (see [RFC 7748][]).
 
 At least one of the X25519 key pairs must be ephemeral. The private key of the
 ephemeral key pair is generated randomly and has an entropy of 251 bits, which
@@ -238,4 +244,7 @@ leads to sufficient entropy of the derived primary key.
 [Additional Authenticated Data (AAD)]: #additional-authenticated-data-aad
 [IV construction]: #iv-construction
 [NIST SP 800-38D]: https://csrc.nist.gov/publications/detail/sp/800-38d/final
+[RFC 7748]: https://www.ietf.org/rfc/rfc7748.txt
+[SHA-256]: https://en.wikipedia.org/wiki/SHA-2
 [Session key derivation]: #session-key-derivation
+[X25519]: https://en.wikipedia.org/wiki/Curve25519

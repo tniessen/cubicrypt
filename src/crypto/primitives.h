@@ -72,9 +72,11 @@ bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
                               const void* private_key);
 
 /**
- * Applies a hash function to the output of the X25519 key exchange.
+ * Computes SHA-256(ss || pk0 || pk1), where ss is the output of the X25519 key
+ * exchange operation, and pk0 and pk1 are the public keys of the two parties.
  */
-bool cubicrypt_x25519_mix(void* out, const void* in);
+bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
+                          const void* pk1);
 
 #endif
 

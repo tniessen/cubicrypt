@@ -232,8 +232,19 @@ bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
   return ok;
 }
 
-bool cubicrypt_x25519_mix(void* out, const void* in) {
-  return mbedtls_sha256(in, CUBICRYPT_X25519_SHARED_SECRET_BYTES, out, 0) == 0;
+bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
+                          const void* pk1) {
+  mbedtls_sha256_context ctx;
+  mbedtls_sha256_init(&ctx);
+  bool ok =
+      mbedtls_sha256_starts(&ctx, 0) == 0 &&
+      mbedtls_sha256_update(&ctx, ss, CUBICRYPT_X25519_SHARED_SECRET_BYTES) ==
+          0 &&
+      mbedtls_sha256_update(&ctx, pk0, CUBICRYPT_KX_PUBLIC_KEY_BYTES) == 0 &&
+      mbedtls_sha256_update(&ctx, pk1, CUBICRYPT_KX_PUBLIC_KEY_BYTES) == 0 &&
+      mbedtls_sha256_finish(&ctx, out) == 0;
+  mbedtls_sha256_free(&ctx);
+  return ok;
 }
 
 #endif

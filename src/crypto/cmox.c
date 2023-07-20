@@ -283,9 +283,20 @@ bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
   return x25519_scalar_mult(shared_secret, private_key, public_key);
 }
 
-bool cubicrypt_x25519_mix(void* out, const void* in) {
-  assert(CUBICRYPT_X25519_SHARED_SECRET_BYTES == CMOX_SHA256_SIZE);
-  return cubicrypt_sha256(in, CUBICRYPT_X25519_SHARED_SECRET_BYTES, out);
+bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
+                          const void* pk1) {
+  // TODO: consider not using the one-shot function cmox_hash_compute
+  uint8_t in[CUBICRYPT_X25519_SHARED_SECRET_BYTES +
+             2 * CUBICRYPT_KX_PUBLIC_KEY_BYTES];
+  memcpy(in, ss, CUBICRYPT_X25519_SHARED_SECRET_BYTES);
+  memcpy(in + CUBICRYPT_X25519_SHARED_SECRET_BYTES, pk0,
+         CUBICRYPT_KX_PUBLIC_KEY_BYTES);
+  memcpy(
+      in + CUBICRYPT_X25519_SHARED_SECRET_BYTES + CUBICRYPT_KX_PUBLIC_KEY_BYTES,
+      pk1, CUBICRYPT_KX_PUBLIC_KEY_BYTES);
+  bool ok = cubicrypt_sha256(in, CUBICRYPT_X25519_SHARED_SECRET_BYTES, out);
+  memset(in, 0, sizeof(in));
+  return ok;
 }
 
 #endif

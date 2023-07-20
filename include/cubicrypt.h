@@ -565,12 +565,15 @@ bool cubicrypt_kx_generate_keypair(void* public_key, void* private_key);
  *                             CUBICRYPT_PRIMARY_KEY_BYTES bytes.
  * @param[in] other_public_key The public key of the other endpoint, which must
  *                             be a sequence of CUBICRYPT_KX_PUBLIC_KEY_BYTES.
+ * @param[in] own_public_key The public key of the local endpoint, which must
+ *                           be a sequence of CUBICRYPT_KX_PUBLIC_KEY_BYTES.
  * @param[in] own_private_key The private key of the local endpoint, which must
  *                            be a sequence of CUBICRYPT_KX_PRIVATE_KEY_BYTES.
  * @return `true` if the key exchange operation succeeded, `false` otherwise.
  */
 bool cubicrypt_kx_derive_primary_key(void* new_primary_key,
                                      const void* other_public_key,
+                                     const void* own_public_key,
                                      const void* own_private_key);
 
 /**

@@ -163,10 +163,15 @@ bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
   return x25519_scalar_mult(shared_secret, private_key, public_key);
 }
 
-bool cubicrypt_x25519_mix(void* out, const void* in) {
-  gcry_md_hash_buffer(GCRY_MD_SHA256, out, in,
-                      CUBICRYPT_X25519_SHARED_SECRET_BYTES);
-  return true;
+bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
+                          const void* pk1) {
+  gcry_buffer_t iov[3] = {
+    { .data = (void*) ss, .len = CUBICRYPT_X25519_SHARED_SECRET_BYTES },
+    { .data = (void*) pk0, .len = CUBICRYPT_KX_PUBLIC_KEY_BYTES },
+    { .data = (void*) pk1, .len = CUBICRYPT_KX_PUBLIC_KEY_BYTES }
+  };
+  return gcry_md_hash_buffers(GCRY_MD_SHA256, 0, out, iov, 3) ==
+         GPG_ERR_NO_ERROR;
 }
 
 #endif

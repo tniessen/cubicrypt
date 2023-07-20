@@ -634,13 +634,27 @@ bool cubicrypt_kx_generate_keypair(void* public_key, void* private_key) {
          cubicrypt_x25519_keygen(public_key, private_key);
 }
 
+static inline bool le256_lt(const uint8_t* a, const uint8_t* b) {
+  for (size_t i = 0; i < 32; i++) {
+    uint8_t a_i = a[31 - i];
+    uint8_t b_i = b[31 - i];
+    if (a_i != b_i) return a_i < b_i;
+  }
+  return false;
+}
+
 bool cubicrypt_kx_derive_primary_key(void* new_primary_key,
                                      const void* other_public_key,
+                                     const void* own_public_key,
                                      const void* own_private_key) {
   if (new_primary_key == NULL || other_public_key == NULL ||
-      own_private_key == NULL) {
+      own_public_key == NULL || own_private_key == NULL) {
     return false;
   }
+
+  bool own_lt_peer = le256_lt(own_public_key, other_public_key);
+  const void* pk0 = own_lt_peer ? own_public_key : other_public_key;
+  const void* pk1 = own_lt_peer ? other_public_key : own_public_key;
 
   uint8_t shared_secret[CUBICRYPT_X25519_SHARED_SECRET_BYTES];
   if (!cubicrypt_x25519_compute(shared_secret, other_public_key,
@@ -648,7 +662,7 @@ bool cubicrypt_kx_derive_primary_key(void* new_primary_key,
     return false;
   }
 
-  bool ok = cubicrypt_x25519_mix(new_primary_key, shared_secret);
+  bool ok = cubicrypt_x25519_mix(new_primary_key, shared_secret, pk0, pk1);
   memset(shared_secret, 0, sizeof(shared_secret));
   return ok;
 }
@@ -656,14 +670,15 @@ bool cubicrypt_kx_derive_primary_key(void* new_primary_key,
 bool cubicrypt_kx_generate_primary_key(void* new_primary_key,
                                        const void* other_public_key,
                                        void* ephemeral_public_key) {
-  uint8_t pk[CUBICRYPT_KX_PRIVATE_KEY_BYTES];
-  if (!cubicrypt_kx_generate_keypair(ephemeral_public_key, pk) ||
-      !cubicrypt_kx_derive_primary_key(new_primary_key, other_public_key, pk)) {
+  uint8_t sk[CUBICRYPT_KX_PRIVATE_KEY_BYTES];
+  if (!cubicrypt_kx_generate_keypair(ephemeral_public_key, sk) ||
+      !cubicrypt_kx_derive_primary_key(new_primary_key, other_public_key,
+                                       ephemeral_public_key, sk)) {
     // We don't need to erase any data here.
     return false;
   }
   // TODO: consider using memset_s or memset_explicit here (and elsewhere)
-  memset(pk, 0, sizeof(pk));
+  memset(sk, 0, sizeof(sk));
   return true;
 }
 

@@ -147,10 +147,13 @@ bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
   return true;
 }
 
-bool cubicrypt_x25519_mix(void* out, const void* in) {
+bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
+                          const void* pk1) {
   struct sha256_ctx ctx;
   sha256_init(&ctx);
-  sha256_update(&ctx, SHA256_DIGEST_SIZE, in);
+  sha256_update(&ctx, CUBICRYPT_X25519_SHARED_SECRET_BYTES, ss);
+  sha256_update(&ctx, CUBICRYPT_KX_PUBLIC_KEY_BYTES, pk0);
+  sha256_update(&ctx, CUBICRYPT_KX_PUBLIC_KEY_BYTES, pk1);
   sha256_digest(&ctx, SHA256_DIGEST_SIZE, out);
   return true;
 }
