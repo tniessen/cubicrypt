@@ -263,7 +263,7 @@ static inline bool cubicrypt_secure_random_256bits(void* out) {
     memcpy(buffer, out, 32);
   }
 
-  memset(buffer, 0, sizeof(buffer));
+  cubicrypt_secure_zero_memory(buffer, sizeof(buffer));
   return entropy_estimate >= max_entropy;
 }
 
@@ -295,7 +295,7 @@ bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
       in + CUBICRYPT_X25519_SHARED_SECRET_BYTES + CUBICRYPT_KX_PUBLIC_KEY_BYTES,
       pk1, CUBICRYPT_KX_PUBLIC_KEY_BYTES);
   bool ok = cubicrypt_sha256(in, CUBICRYPT_X25519_SHARED_SECRET_BYTES, out);
-  memset(in, 0, sizeof(in));
+  cubicrypt_secure_zero_memory(in, sizeof(in));
   return ok;
 }
 

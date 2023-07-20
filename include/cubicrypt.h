@@ -614,6 +614,17 @@ bool cubicrypt_kx_generate_primary_key(void* new_primary_key,
 
 #endif
 
+/**
+ * Utility function to erase memory that contains sensitive data.
+ *
+ * Unlike memset, the implementation is not subject to compiler optimizations
+ * such as dead store elimination.
+ *
+ * @param[out] ptr The pointer to the memory that is to be erased.
+ * @param[in] size The size of the memory that is to be erased, in bytes.
+ */
+void cubicrypt_secure_zero_memory(void* ptr, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

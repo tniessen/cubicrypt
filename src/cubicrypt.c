@@ -287,7 +287,7 @@ cubicrypt_err cubicrypt_out_encode(cubicrypt_out_ctx* ctx, uint32_t* session_id,
                                                &padded.iovecs, auth_tag);
   }
 
-  memset(session_key, 0, sizeof(session_key));
+  cubicrypt_secure_zero_memory(session_key, sizeof(session_key));
 
   if (!crypto_ok) {
     return CUBICRYPT_ERR_CRYPTO_LIB;
@@ -344,7 +344,7 @@ cubicrypt_err cubicrypt_out_deinit(cubicrypt_out_ctx* ctx) {
   }
 
   ctx->initialized = false;
-  memset(ctx->primary_key, 0, sizeof(ctx->primary_key));
+  cubicrypt_secure_zero_memory(ctx->primary_key, sizeof(ctx->primary_key));
 
   return CUBICRYPT_ERR_OK;
 }
@@ -494,7 +494,7 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
         session_key, padded_iv, &padded.iovecs, auth_tag, &verify_ok);
   }
 
-  memset(session_key, 0, sizeof(session_key));
+  cubicrypt_secure_zero_memory(session_key, sizeof(session_key));
 
   if (!crypto_ok) {
     return CUBICRYPT_ERR_CRYPTO_LIB;
@@ -622,7 +622,7 @@ cubicrypt_err cubicrypt_in_deinit(cubicrypt_in_ctx* ctx) {
   }
 
   ctx->initialized = false;
-  memset(ctx->primary_key, 0, sizeof(ctx->primary_key));
+  cubicrypt_secure_zero_memory(ctx->primary_key, sizeof(ctx->primary_key));
 
   return CUBICRYPT_ERR_OK;
 }
@@ -663,7 +663,7 @@ bool cubicrypt_kx_derive_primary_key(void* new_primary_key,
   }
 
   bool ok = cubicrypt_x25519_mix(new_primary_key, shared_secret, pk0, pk1);
-  memset(shared_secret, 0, sizeof(shared_secret));
+  cubicrypt_secure_zero_memory(shared_secret, sizeof(shared_secret));
   return ok;
 }
 
@@ -677,9 +677,17 @@ bool cubicrypt_kx_generate_primary_key(void* new_primary_key,
     // We don't need to erase any data here.
     return false;
   }
-  // TODO: consider using memset_s or memset_explicit here (and elsewhere)
-  memset(sk, 0, sizeof(sk));
+  cubicrypt_secure_zero_memory(sk, sizeof(sk));
   return true;
 }
 
 #endif
+
+// We define a volatile function pointer whose value is the address of the
+// memset function. Because the function pointer is volatile, the compiler
+// cannot optimize away the function call. Idea based on OpenSSL 3.1.1.
+static void* (*const volatile volatile_memset_fp)(void*, int, size_t) = memset;
+
+void cubicrypt_secure_zero_memory(void* ptr, size_t size) {
+  volatile_memset_fp(ptr, 0, size);
+}
