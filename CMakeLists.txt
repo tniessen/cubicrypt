@@ -124,7 +124,7 @@ if(ENABLE_TESTING)
     set_tests_properties("${fname}" PROPERTIES TIMEOUT 60)
 
     if(ENABLE_VALGRIND)
-      add_test(NAME "valgrind:${fname}" COMMAND valgrind $<TARGET_FILE:${fname}>)
+      add_test(NAME "valgrind:${fname}" COMMAND valgrind --leak-check=full --error-exitcode=1 --track-origins=yes $<TARGET_FILE:${fname}>)
       set_tests_properties("valgrind:${fname}" PROPERTIES TIMEOUT 180)
     endif()
   endforeach()
