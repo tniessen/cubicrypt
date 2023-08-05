@@ -166,7 +166,7 @@ static void test_unauthentic(cubicrypt_out_ctx* sender,
     assert_eq(CUBICRYPT_ERR_AUTH,
               cubicrypt_in_decode_copy(receiver, session_id, frame_iv,
                                        encrypted, aad, aad_size, enc_message,
-                                       message_size + 1, auth_tag, plaintext));
+                                       message_size - 1, auth_tag, plaintext));
 
     // Incorrect primary key.
     assert_eq(CUBICRYPT_ERR_AUTH,
