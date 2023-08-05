@@ -18,9 +18,7 @@ jobs:
           - openssl
         buildtype:
           - Debug
-          - RelWithDebInfo
           - Release
-          - MinSizeRel
         compiler:
           - gcc
           - clang
@@ -84,9 +82,7 @@ jobs:
           - openssl
         buildtype:
           - Debug
-          - RelWithDebInfo
           - Release
-          - MinSizeRel
         compiler:
           - gcc
           - clang
@@ -122,9 +118,7 @@ jobs:
           - openssl
         buildtype:
           - Debug
-          - RelWithDebInfo
           - Release
-          - MinSizeRel
     steps:
       - uses: actions/checkout@v3
       - name: Install OpenSSL
