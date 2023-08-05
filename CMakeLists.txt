@@ -37,6 +37,7 @@ add_library(cubicrypt "src/cubicrypt.c")
 
 set(CRYPTO_BACKEND openssl CACHE STRING "Crypto library to link against")
 set_property(CACHE CRYPTO_BACKEND PROPERTY STRINGS cmox
+                                                   cyclone
                                                    gcrypt
                                                    mbedtls
                                                    nettle
@@ -47,6 +48,16 @@ if(CRYPTO_BACKEND STREQUAL "cmox")
   if(DEFINED CMOX_INCLUDE_DIR)
     target_include_directories(cubicrypt PRIVATE "${CMOX_INCLUDE_DIR}")
   endif()
+elseif(CRYPTO_BACKEND STREQUAL "cyclone")
+  option(CUBICRYPT_HAVE_CYCLONE_TRNG "Use Cyclone's TRNG")
+  option(CUBICRYPT_NO_CYCLONE_TRNG "Do not attempt to use Cyclone's TRNG")
+
+  if(DEFINED CYCLONE_INCLUDE_DIRS)
+    target_include_directories(cubicrypt PRIVATE "${CYCLONE_INCLUDE_DIRS}")
+  endif()
+
+  target_sources(cubicrypt PRIVATE "src/crypto/cyclone.c")
+  target_link_libraries(cubicrypt PRIVATE cyclonecrypto)
 elseif(CRYPTO_BACKEND STREQUAL "gcrypt")
   target_sources(cubicrypt PRIVATE "src/crypto/gcrypt.c")
   target_link_libraries(cubicrypt PRIVATE gcrypt)
@@ -65,7 +76,7 @@ else()
   message(FATAL_ERROR "Invalid CRYPTO_BACKEND")
 endif()
 
-foreach(backend IN ITEMS cmox gcrypt mbedtls nettle openssl)
+foreach(backend IN ITEMS cmox cyclone gcrypt mbedtls nettle openssl)
   string(TOUPPER ${backend} backend)
   unset(CUBICRYPT_CRYPTO_BACKEND_IS_${backend} CACHE)
 endforeach()

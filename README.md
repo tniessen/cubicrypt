@@ -21,6 +21,7 @@ The optional key exchange extension is based on [X25519][] and [SHA-256][].
 Cubicrypt supports the following implementations of the required cryptographic
 primitives:
 
+- [CycloneCRYPTO][]
 - [gcrypt][]
 - [Mbed TLS][]
 - [Nettle][]
@@ -29,6 +30,7 @@ primitives:
 
 [AES]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
 [Cubicrypt protocol]: ./PROTOCOL.md
+[CycloneCRYPTO]: https://oryx-embedded.com/products/CycloneCRYPTO.html
 [Galois/Counter Mode (GCM)]: https://en.wikipedia.org/wiki/Galois/Counter_Mode
 [Mbed TLS]: https://github.com/ARMmbed/mbedtls
 [Nettle]: https://github.com/gnutls/nettle
