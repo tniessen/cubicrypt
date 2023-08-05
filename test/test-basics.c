@@ -66,7 +66,7 @@ CUBICRYPT_TEST_MAIN(basics) {
       uint8_t aad[32];
       memset(aad, 0xab ^ (int) aad_size, aad_size);
       uint8_t message[32];
-      memset(aad, 0xcd ^ (int) message_size, message_size);
+      memset(message, 0xcd ^ (int) message_size, message_size);
       assert_ok(cubicrypt_out_auth_only(&sender, &session_id, &session_iv, aad,
                                         aad_size, message, message_size,
                                         auth_tag));
