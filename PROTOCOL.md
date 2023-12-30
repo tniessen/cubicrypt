@@ -69,7 +69,7 @@ Cubicrypt writes to persistent storage whenever the session identifier changes.
 Applications may want to consider this when deciding when to eagerly start new
 sessions.
 
-> **Note**
+> [!NOTE]
 > The session identifier 0 is reserved. The first session identifier used by a
 > new Cubicrypt context is 1.
 
@@ -93,7 +93,7 @@ must be rejected unless their frame identifier `(S', F')` fulfills the following
 condition: Either `S'` is strictly greater than `S`, or `S'` is equal to `S` and
 `F'` is strictly greater than `F`.
 
-> **Note**
+> [!NOTE]
 > Cubicrypt supports out-of-order decoding, which relaxes the above requirement.
 > Out-of-order decoding does not negatively affect security, but it can still be
 > disabled at compile time if desired.
@@ -111,7 +111,7 @@ causes it to be included in the authentication mechanism. In the above example,
 this would prevent an attacker from modifying routing information associated
 with a frame.
 
-> **Note**
+> [!NOTE]
 > Additional authenticated data does not affect the size of the encoded frame,
 > but large amounts of additional authenticated data may negatively impact
 > performance.
@@ -210,7 +210,7 @@ If the AAD consists of 331 bytes, then the GMAC input consists of the 16 bytes
 `00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 4b`, the AAD itself, the 5 padding
 bytes `00 00 00 00 00`, and the frame's body.
 
-> **Note**
+> [!NOTE]
 > While the same session key is used for all frames within a session, regardless
 > of whether the respective frames are encrypted or merely authenticated, the
 > [IV construction][] described above results in different nonces being used
