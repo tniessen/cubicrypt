@@ -108,6 +108,11 @@ else()
   message(STATUS "Enabling key exchange functions")
 endif()
 
+option(CUBICRYPT_STM32_CMOX_AES_CRC0_WORKAROUND "Workaround for compatibility with CMOX's AES implementation on STM32 with CRC unit disabled" OFF)
+if(CUBICRYPT_STM32_CMOX_AES_CRC0_WORKAROUND)
+  message(WARNING "Enabling workaround for compatibility with CMOX's AES implementation on STM32 with CRC unit disabled")
+endif()
+
 configure_file("include/cubicrypt/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/include/cubicrypt/config.h")
 target_include_directories(cubicrypt PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/include")
 

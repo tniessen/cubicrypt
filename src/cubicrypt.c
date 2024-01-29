@@ -101,6 +101,51 @@ static inline void pad_for_aad(cubicrypt_padded* p, const void* aad,
   p->bufs[3].iov_len = body_size;
 }
 
+// See https://gist.github.com/tniessen/cc8d0a86d830f5633098a0701021c8ab.
+#ifdef CUBICRYPT_STM32_CMOX_AES_CRC0_WORKAROUND
+#  define CMOX_CRC0_M0 UINT8_C(0x0b)
+#  define CMOX_CRC0_M1 UINT8_C(0x52)
+#  define CMOX_CRC0_M2 UINT8_C(0x85)
+#  define CMOX_CRC0_AES128_C0 0x00
+#  define CMOX_CRC0_AES128_C1 0x0e
+#  define CMOX_CRC0_AES128_C2 0x0f
+#  define CMOX_CRC0_AES256_C0 0x1f
+#  define CMOX_CRC0_AES256_C1 0x10
+#  define CMOX_CRC0_AES256_C2 0x11
+#endif
+
+/**
+ * This is a no-op unless CUBICRYPT_STM32_CMOX_AES_CRC0_WORKAROUND is defined,
+ * in which case it modifies the given session key in the same way that CMOX
+ * would modify the 128-bit key if the hardware CRC unit was disabled, which ST
+ * uses to tie CMOX to its own processors.
+ */
+static inline void post_process_session_key(uint8_t* key) {
+#ifdef CUBICRYPT_STM32_CMOX_AES_CRC0_WORKAROUND
+  key[CMOX_CRC0_AES128_C0] += CMOX_CRC0_M0;
+  key[CMOX_CRC0_AES128_C1] += CMOX_CRC0_M1;
+  key[CMOX_CRC0_AES128_C2] += CMOX_CRC0_M2;
+#else
+  (void) key;
+#endif
+}
+
+/**
+ * This is a no-op unless CUBICRYPT_STM32_CMOX_AES_CRC0_WORKAROUND is defined,
+ * in which case it modifies the given primary key in the same way that CMOX
+ * would modify the 256-bit key if the hardware CRC unit was disabled, which ST
+ * uses to tie CMOX to its own processors.
+ */
+static inline void post_process_primary_key(uint8_t* key) {
+#ifdef CUBICRYPT_STM32_CMOX_AES_CRC0_WORKAROUND
+  key[CMOX_CRC0_AES256_C0] += CMOX_CRC0_M0;
+  key[CMOX_CRC0_AES256_C1] += CMOX_CRC0_M1;
+  key[CMOX_CRC0_AES256_C2] += CMOX_CRC0_M2;
+#else
+  (void) key;
+#endif
+}
+
 cubicrypt_session_state cubicrypt_initial_persistent_state(void) {
   const cubicrypt_session_state initial_state = { 1u, 0u };
   return initial_state;
@@ -123,6 +168,7 @@ cubicrypt_err cubicrypt_out_init(
   }
 
   memcpy(ctx->primary_key, primary_key, CUBICRYPT_PRIMARY_KEY_BYTES);
+  post_process_primary_key(ctx->primary_key);
 
   memcpy(ctx->params.context_id, params->context_id,
          CUBICRYPT_CONTEXT_ID_BYTES);
@@ -273,6 +319,8 @@ cubicrypt_err cubicrypt_out_encode(cubicrypt_out_ctx* ctx, uint32_t* session_id,
     return CUBICRYPT_ERR_CRYPTO_LIB;
   }
 
+  post_process_session_key(session_key);
+
   uint8_t padded_iv[CUBICRYPT_AES_GCM_IV_BYTES];
   compute_iv(*frame_iv, encrypt, padded_iv);
 
@@ -366,6 +414,7 @@ cubicrypt_err cubicrypt_in_init(cubicrypt_in_ctx* ctx, const void* primary_key,
   }
 
   memcpy(ctx->primary_key, primary_key, CUBICRYPT_PRIMARY_KEY_BYTES);
+  post_process_primary_key(ctx->primary_key);
 
   memcpy(ctx->params.context_id, params->context_id,
          CUBICRYPT_CONTEXT_ID_BYTES);
@@ -478,6 +527,8 @@ cubicrypt_err cubicrypt_in_decode(cubicrypt_in_ctx* ctx, uint32_t session_id,
   if (!crypto_ok) {
     return CUBICRYPT_ERR_CRYPTO_LIB;
   }
+
+  post_process_session_key(session_key);
 
   uint8_t padded_iv[CUBICRYPT_AES_GCM_IV_BYTES];
   compute_iv(frame_iv, is_encrypted, padded_iv);
