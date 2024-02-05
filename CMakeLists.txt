@@ -34,6 +34,7 @@ if(ENABLE_UBSAN)
 endif()
 
 add_library(cubicrypt "src/cubicrypt.c")
+target_include_directories(cubicrypt PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 set(CRYPTO_BACKEND openssl CACHE STRING "Crypto library to link against")
 set_property(CACHE CRYPTO_BACKEND PROPERTY STRINGS cmox
