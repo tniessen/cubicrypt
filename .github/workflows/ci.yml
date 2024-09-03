@@ -36,13 +36,13 @@ jobs:
         if: matrix.backend == 'cyclone'
         working-directory: ${{github.workspace}}/tools/cyclone-ci
         run: |
-          wget -O Common-2.4.2.tar.gz "https://github.com/Oryx-Embedded/Common/archive/refs/tags/v2.4.2.tar.gz" \
-            && wget -O CycloneCRYPTO-2.4.2.tar.gz "https://github.com/Oryx-Embedded/CycloneCRYPTO/archive/refs/tags/v2.4.2.tar.gz" \
-            && tar -xzf Common-2.4.2.tar.gz \
-            && tar -xzf CycloneCRYPTO-2.4.2.tar.gz \
-            && rm -rf Common-2.4.2.tar.gz CycloneCRYPTO-2.4.2.tar.gz \
-            && mv Common-2.4.2 common \
-            && mv CycloneCRYPTO-2.4.2 cyclone_crypto \
+          wget -O Common-2.4.4.tar.gz "https://github.com/Oryx-Embedded/Common/archive/refs/tags/v2.4.4.tar.gz" \
+            && wget -O CycloneCRYPTO-2.4.4.tar.gz "https://github.com/Oryx-Embedded/CycloneCRYPTO/archive/refs/tags/v2.4.4.tar.gz" \
+            && tar -xzf Common-2.4.4.tar.gz \
+            && tar -xzf CycloneCRYPTO-2.4.4.tar.gz \
+            && rm -rf Common-2.4.4.tar.gz CycloneCRYPTO-2.4.4.tar.gz \
+            && mv Common-2.4.4 common \
+            && mv CycloneCRYPTO-2.4.4 cyclone_crypto \
             && CC=${{matrix.compiler}} make libcyclonecrypto.a \
             && echo "CFLAGS=-I$(pwd)/config -I$(pwd)/common -I$(pwd)/cyclone_crypto" >> "$GITHUB_ENV" \
             && echo "LDFLAGS=-L$(pwd)" >> "$GITHUB_ENV"
