@@ -30,6 +30,11 @@ jobs:
           # Valgrind currently does not support dwarf2 produced by clang.
           - compiler: clang
             sanitizer: VALGRIND
+          # TODO: resolve this memory leak if it is real. It did not appear in
+          # CI runs on ubuntu-22.04 but only started happening once GitHub
+          # changed the default to ubuntu-24.04.
+          - backend: gcrypt
+            sanitizer: ASAN
     steps:
       - uses: actions/checkout@v4
       - name: Install CycloneCRYPTO
@@ -46,6 +51,9 @@ jobs:
             && CC=${{matrix.compiler}} make libcyclonecrypto.a \
             && echo "CFLAGS=-I$(pwd)/config -I$(pwd)/common -I$(pwd)/cyclone_crypto" >> "$GITHUB_ENV" \
             && echo "LDFLAGS=-L$(pwd)" >> "$GITHUB_ENV"
+      - name: Install libgcrypt20-dev
+        if: matrix.backend == 'gcrypt'
+        run: sudo apt-get update && sudo apt-get install -y libgcrypt20-dev
       - name: Install mbedtls
         if: matrix.backend == 'mbedtls'
         run: |
