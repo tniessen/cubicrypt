@@ -36,7 +36,7 @@ jobs:
           - backend: gcrypt
             sanitizer: ASAN
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install CycloneCRYPTO
         if: matrix.backend == 'cyclone'
         working-directory: ${{github.workspace}}/tools/cyclone-ci
@@ -98,7 +98,7 @@ jobs:
           - ASAN
           - UBSAN
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install nettle
         if: matrix.backend == 'nettle'
         run: |
@@ -128,7 +128,7 @@ jobs:
           - Debug
           - Release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install OpenSSL
         run: choco install --confirm --no-progress openssl --version 3.1.1
       - name: Create Build Environment
