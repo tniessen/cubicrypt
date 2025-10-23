@@ -57,12 +57,12 @@ jobs:
       - name: Install mbedtls
         if: matrix.backend == 'mbedtls'
         run: |
-          wget "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.4/mbedtls-3.6.4.tar.bz2" \
-            && tar -xjf mbedtls-3.6.4.tar.bz2 \
-            && cd mbedtls-3.6.4 \
+          wget "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.5/mbedtls-3.6.5.tar.bz2" \
+            && tar -xjf mbedtls-3.6.5.tar.bz2 \
+            && cd mbedtls-3.6.5 \
             && make no_test \
             && sudo make install \
-            && rm -rf mbedtls-3.6.4.tar.bz2 mbedtls-3.6.4
+            && rm -rf mbedtls-3.6.5.tar.bz2 mbedtls-3.6.5
       - name: Install nettle
         if: matrix.backend == 'nettle'
         run: sudo apt-get install -y nettle-dev
