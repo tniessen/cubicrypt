@@ -5,6 +5,7 @@
 #include <nettle/aes.h>
 #include <nettle/gcm.h>
 #include <nettle/memops.h>
+#include <nettle/version.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -16,6 +17,19 @@
 
 #  include "x25519-helper.h"
 #endif
+
+// Nettle 4 removed the length parameter from all *_digest() functions, which
+// now always write the full digest. The authentication tag is truncated, so
+// use a temporary buffer.
+static void gcm_aes128_tag(struct gcm_aes128_ctx* ctx, void* tag) {
+#if NETTLE_VERSION_MAJOR >= 4
+  uint8_t full[GCM_DIGEST_SIZE];
+  gcm_aes128_digest(ctx, full);
+  memcpy(tag, full, CUBICRYPT_AES_GCM_AUTH_TAG_BYTES);
+#else
+  gcm_aes128_digest(ctx, CUBICRYPT_AES_GCM_AUTH_TAG_BYTES, tag);
+#endif
+}
 
 bool cubicrypt_aes_256_cipher(const void* key, const void* block, void* out) {
   struct aes256_ctx ctx;
@@ -33,7 +47,7 @@ bool cubicrypt_aes_128_gcm_encrypt(const void* key, const void* iv,
   gcm_aes128_set_iv(&ctx, 12, iv);
   gcm_aes128_update(&ctx, aad_size, aad);
   gcm_aes128_encrypt(&ctx, plaintext_size, out, plaintext);
-  gcm_aes128_digest(&ctx, CUBICRYPT_AES_GCM_AUTH_TAG_BYTES, auth_tag);
+  gcm_aes128_tag(&ctx, auth_tag);
   return true;
 }
 
@@ -49,7 +63,7 @@ bool cubicrypt_aes_128_gcm_decrypt(const void* key, const void* iv,
   gcm_aes128_decrypt(&ctx, ciphertext_size, out, ciphertext);
 
   uint8_t correct_auth_tag[CUBICRYPT_AES_GCM_AUTH_TAG_BYTES];
-  gcm_aes128_digest(&ctx, CUBICRYPT_AES_GCM_AUTH_TAG_BYTES, correct_auth_tag);
+  gcm_aes128_tag(&ctx, correct_auth_tag);
   *result = (memeql_sec(auth_tag, correct_auth_tag,
                         CUBICRYPT_AES_GCM_AUTH_TAG_BYTES) != 0);
 
@@ -112,7 +126,7 @@ bool cubicrypt_aes_128_gmac_compute(const void* key, const void* iv,
     gcm_aes128_update(&ctx, remaining_len, remaining_buf);
   }
 
-  gcm_aes128_digest(&ctx, CUBICRYPT_AES_GCM_AUTH_TAG_BYTES, auth_tag);
+  gcm_aes128_tag(&ctx, auth_tag);
 
   return true;
 }
@@ -147,6 +161,15 @@ bool cubicrypt_x25519_compute(void* shared_secret, const void* public_key,
   return true;
 }
 
+// See above regarding the Nettle 4 digest changes.
+static void sha256_finish(struct sha256_ctx* ctx, void* out) {
+#if NETTLE_VERSION_MAJOR >= 4
+  sha256_digest(ctx, out);
+#else
+  sha256_digest(ctx, SHA256_DIGEST_SIZE, out);
+#endif
+}
+
 bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
                           const void* pk1) {
   struct sha256_ctx ctx;
@@ -154,7 +177,7 @@ bool cubicrypt_x25519_mix(void* out, const void* ss, const void* pk0,
   sha256_update(&ctx, CUBICRYPT_X25519_SHARED_SECRET_BYTES, ss);
   sha256_update(&ctx, CUBICRYPT_KX_PUBLIC_KEY_BYTES, pk0);
   sha256_update(&ctx, CUBICRYPT_KX_PUBLIC_KEY_BYTES, pk1);
-  sha256_digest(&ctx, SHA256_DIGEST_SIZE, out);
+  sha256_finish(&ctx, out);
   return true;
 }
 
