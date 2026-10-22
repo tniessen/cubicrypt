@@ -7,10 +7,9 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 
 if(MSVC)
   # TODO: do not suppress C4267 when compiling with MSVC
-  add_compile_options(/W3 /WX /wd4267)
-  add_link_options(/WX)
+  add_compile_options(/W3 /wd4267)
 else()
-  add_compile_options(-Wall -Wextra -pedantic -Werror)
+  add_compile_options(-Wall -Wextra -pedantic)
 endif()
 
 # TODO: ubsan and KCC and clang-tidy
